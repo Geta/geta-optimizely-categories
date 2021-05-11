@@ -1,4 +1,7 @@
-﻿namespace Geta.Optimizely.Categories.Routing
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+namespace Geta.Optimizely.Categories.Routing
 {
     public class CategoryDataValueProviderFactory : ValueProviderFactory
     {

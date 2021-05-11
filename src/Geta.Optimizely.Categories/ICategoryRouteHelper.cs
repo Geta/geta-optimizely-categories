@@ -1,4 +1,7 @@
-﻿namespace Geta.Optimizely.Categories
+﻿using EPiServer.Core;
+using EPiServer.Web.Routing;
+
+namespace Geta.Optimizely.Categories
 {
     public interface ICategoryRouteHelper : IContentRouteHelper
     {

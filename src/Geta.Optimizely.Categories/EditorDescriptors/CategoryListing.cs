@@ -1,5 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using EPiServer;
+using EPiServer.ServiceLocation;
+using EPiServer.Shell.ObjectEditing;
 
 namespace Geta.Optimizely.Categories.EditorDescriptors
 {
@@ -8,8 +10,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         private readonly ICategoryContentLoader _categoryContentLoader;
         private readonly IContentLoader _contentLoader;
 
-        public CategoryListing() : this(ServiceLocator.Current.GetInstance<ICategoryContentLoader>(),
-            ServiceLocator.Current.GetInstance<IContentLoader>())
+        public CategoryListing()
+            : this(ServiceLocator.Current.GetInstance<ICategoryContentLoader>(), ServiceLocator.Current.GetInstance<IContentLoader>())
         {
 
         }
@@ -20,10 +22,10 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             _contentLoader = contentLoader;
         }
 
-        public IEnumerable<SelectListItem> GetSelectListItems(Type propertyType)
+        public IEnumerable<ISelectItem> GetSelections(ExtendedMetadata metadata)
         {
             var categories = _categoryContentLoader.GetGlobalCategories<CategoryData>();
-            var results = new List<SelectListItem>();
+            var results = new List<SelectItem>();
 
             foreach (var c in categories)
             {
@@ -33,9 +35,9 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             return results;
         }
 
-        private void GetChildren(CategoryData categoryData, List<SelectListItem> list, string prefix)
+        private void GetChildren(CategoryData categoryData, List<SelectItem> list, string prefix)
         {
-            list.Add(new SelectListItem() { Text = prefix + categoryData.Name, Value = categoryData.ContentLink.ID.ToString() });
+            list.Add(new SelectItem { Text = prefix + categoryData.Name, Value = categoryData.ContentLink.ID.ToString() });
             foreach (var c in _contentLoader.GetChildren<CategoryData>(categoryData.ContentLink))
             {
                 GetChildren(c, list, prefix + "-");

@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.Globalization;
 
 namespace Geta.Optimizely.Categories
 {

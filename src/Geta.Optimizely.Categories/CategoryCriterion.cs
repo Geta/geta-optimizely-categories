@@ -1,5 +1,9 @@
 ﻿using System.Linq;
 using System.Security.Principal;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.Personalization.VisitorGroups;
+using EPiServer.ServiceLocation;
 
 namespace Geta.Optimizely.Categories
 {

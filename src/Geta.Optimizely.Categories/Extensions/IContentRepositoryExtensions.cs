@@ -1,6 +1,13 @@
-﻿namespace Geta.Optimizely.Categories.Extensions
+﻿using System.Linq;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.DataAccess;
+using EPiServer.Security;
+using EPiServer.Web;
+
+namespace Geta.Optimizely.Categories.Extensions
 {
-    public static class IContentRepositoryExtensions
+    public static class ContentRepositoryExtensions
     {
         public static ContentReference GetOrCreateGlobalCategoriesRoot(this IContentRepository contentRepository)
         {

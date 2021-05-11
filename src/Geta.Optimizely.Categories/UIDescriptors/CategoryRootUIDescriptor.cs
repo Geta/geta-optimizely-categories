@@ -1,4 +1,6 @@
-﻿namespace Geta.Optimizely.Categories.UIDescriptors
+﻿using EPiServer.Shell;
+
+namespace Geta.Optimizely.Categories.UIDescriptors
 {
     [UIDescriptorRegistration]
     public class CategoryRootUIDescriptor : UIDescriptor<CategoryRoot>, IEditorDropBehavior

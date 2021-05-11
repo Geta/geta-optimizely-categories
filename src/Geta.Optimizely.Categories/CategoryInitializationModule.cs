@@ -1,4 +1,11 @@
-﻿using Geta.Optimizely.Categories.Routing;
+﻿using EPiServer;
+using EPiServer.Core;
+using EPiServer.Data;
+using EPiServer.Framework;
+using EPiServer.Framework.Initialization;
+using EPiServer.ServiceLocation;
+using EPiServer.Web;
+using Geta.Optimizely.Categories.Routing;
 
 namespace Geta.Optimizely.Categories
 {

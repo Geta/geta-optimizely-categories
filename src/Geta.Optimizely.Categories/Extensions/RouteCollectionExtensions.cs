@@ -1,5 +1,11 @@
 ﻿using System;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.ServiceLocation;
+using EPiServer.Web;
+using EPiServer.Web.Routing.Segments;
 using Geta.Optimizely.Categories.Routing;
+using Microsoft.AspNetCore.Routing;
 
 namespace Geta.Optimizely.Categories.Extensions
 {

@@ -1,6 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.Globalization;
+using EPiServer.Web;
+using Geta.Optimizely.Categories.Extensions;
 
 namespace Geta.Optimizely.Categories
 {

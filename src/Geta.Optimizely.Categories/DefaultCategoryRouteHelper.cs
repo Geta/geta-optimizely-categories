@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Globalization;
+using EPiServer;
+using EPiServer.Core;
+using Microsoft.AspNetCore.Routing;
 
 namespace Geta.Optimizely.Categories
 {

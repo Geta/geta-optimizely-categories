@@ -1,4 +1,8 @@
-﻿namespace Geta.Optimizely.Categories
+﻿using EPiServer.ServiceLocation;
+using EPiServer.Shell;
+using EPiServer.Shell.ViewComposition;
+
+namespace Geta.Optimizely.Categories
 {
     [Component]
     public class CategoryTreeComponent : ComponentDefinitionBase

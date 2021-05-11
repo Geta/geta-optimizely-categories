@@ -1,11 +1,14 @@
 ﻿using System.Collections.Generic;
+using EPiServer.Core;
+using EPiServer.Web.Routing;
 using Geta.Optimizely.Categories.Routing;
+using Microsoft.AspNetCore.Routing;
 
 namespace Geta.Optimizely.Categories.Extensions
 {
     public static class UrlResolverExtensions
     {
-        public static string GetCategoryRoutedUrl(this UrlResolver urlResolver, ContentReference contentLink, ContentReference categoryContentLink)
+        public static string GetCategoryRoutedUrl(this IUrlResolver urlResolver, ContentReference contentLink, ContentReference categoryContentLink)
         {
             return urlResolver.GetVirtualPath(contentLink, null,
                 new VirtualPathArguments
@@ -15,7 +18,7 @@ namespace Geta.Optimizely.Categories.Extensions
                 .GetUrl();
         }
 
-        public static string GetCategoryRoutedUrl(this UrlResolver urlResolver, ContentReference contentLink, IEnumerable<ContentReference> categoryContentLinks)
+        public static string GetCategoryRoutedUrl(this IUrlResolver urlResolver, ContentReference contentLink, IEnumerable<ContentReference> categoryContentLinks)
         {
             return urlResolver.GetVirtualPath(contentLink, null,
                 new VirtualPathArguments

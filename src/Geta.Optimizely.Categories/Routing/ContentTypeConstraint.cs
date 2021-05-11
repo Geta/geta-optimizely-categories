@@ -1,4 +1,8 @@
-﻿namespace Geta.Optimizely.Categories.Routing
+﻿using EPiServer;
+using EPiServer.Core;
+using Microsoft.AspNetCore.Routing;
+
+namespace Geta.Optimizely.Categories.Routing
 {
     public class ContentTypeConstraint<TContentType> : IContentRouteConstraint where TContentType : IContent
     {

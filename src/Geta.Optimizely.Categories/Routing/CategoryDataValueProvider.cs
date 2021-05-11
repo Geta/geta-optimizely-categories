@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Globalization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Geta.Optimizely.Categories.Routing
 {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using EPiServer.Core;
 
 namespace Geta.Optimizely.Categories
 {

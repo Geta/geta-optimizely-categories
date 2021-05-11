@@ -1,6 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using EPiServer.Cms.Shell.UI.CompositeViews.Internal;
+using EPiServer.Core;
+using EPiServer.Framework.Localization;
+using EPiServer.ServiceLocation;
+using EPiServer.Shell;
+using EPiServer.Web;
 
 namespace Geta.Optimizely.Categories
 {

@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using EPiServer.Core;
 
 namespace Geta.Optimizely.Categories.Extensions
 {
-    public static class IEnumerableExtensions
+    public static class EnumerableExtensions
     {
         public static bool MemberOf(this IEnumerable<ContentReference> contentLinks, ContentReference contentReference)
         {

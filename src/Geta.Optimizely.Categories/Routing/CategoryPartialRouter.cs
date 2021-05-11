@@ -1,6 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.Core.Routing;
+using EPiServer.Globalization;
+using EPiServer.ServiceLocation;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.IdentityModel.Protocols;
 
 namespace Geta.Optimizely.Categories.Routing
 {
@@ -10,7 +17,7 @@ namespace Geta.Optimizely.Categories.Routing
         protected readonly IContentLoader ContentLoader;
         protected readonly ICategoryContentLoader CategoryLoader;
         protected readonly LanguageResolver LanguageResolver;
-        public static string CategorySeparator = ConfigurationManager.AppSettings["GetaEpiCategories:CategorySeparator"] ?? "__";
+        public static string CategorySeparator = ConfigurationManager<>.AppSettings["GetaEpiCategories:CategorySeparator"] ?? "__";
 
         public CategoryPartialRouter(IContentLoader contentLoader, ICategoryContentLoader categoryLoader, LanguageResolver languageResolver)
         {
