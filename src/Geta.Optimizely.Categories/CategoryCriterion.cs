@@ -4,6 +4,7 @@ using EPiServer;
 using EPiServer.Core;
 using EPiServer.Personalization.VisitorGroups;
 using EPiServer.ServiceLocation;
+using Microsoft.AspNetCore.Http;
 
 namespace Geta.Optimizely.Categories
 {
@@ -32,7 +33,7 @@ namespace Geta.Optimizely.Categories
             _categoryContentLoader = categoryContentLoader;
         }
 
-        public override bool IsMatch(IPrincipal principal, HttpContextBase httpContext)
+        public override bool IsMatch(IPrincipal principal, HttpContext httpContext)
         {
             if (_stateStorage.IsAvailable && GetVisitedTimes() >= Model.ViewedTimes)
                 return true;
