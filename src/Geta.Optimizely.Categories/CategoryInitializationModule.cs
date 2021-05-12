@@ -49,14 +49,6 @@ namespace Geta.Optimizely.Categories
 
         public void ConfigureContainer(ServiceConfigurationContext context)
         {
-            ConfigureContainer(context.Services);
-        }
-
-        private static void ConfigureContainer(IServiceConfigurationProvider services)
-        {
-            services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
-            services.AddSingleton<IContentInCategoryLocator, DefaultContentInCategoryLocator>();
-            services.AddScoped<ICategoryRouteHelper, DefaultCategoryRouteHelper>();
         }
 
         private void OnCreatingContent(object sender, ContentEventArgs args)

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using EPiServer.Core;
+using EPiServer.ServiceLocation;
 using EPiServer.Shell.ObjectEditing;
 using EPiServer.Shell.ObjectEditing.EditorDescriptors;
-using Microsoft.IdentityModel.Protocols;
+using Geta.Optimizely.Categories.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories.EditorDescriptors
 {
@@ -12,7 +14,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
     {
         public override void ModifyMetadata(ExtendedMetadata metadata, IEnumerable<Attribute> attributes)
         {
-            var showDefaultCategoryProperty = bool.Parse(ConfigurationManager<>.AppSettings["GetaEpiCategories:ShowDefaultCategoryProperty"] ?? "false");
+            var configuration = ServiceLocator.Current.GetInstance<IOptions<CategoriesOptions>>().Value;
+            var showDefaultCategoryProperty = configuration.ShowDefaultCategoryProperty;
 
             if (showDefaultCategoryProperty || !metadata.PropertyName.Equals("icategorizable_category", StringComparison.OrdinalIgnoreCase))
             {

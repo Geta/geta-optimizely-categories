@@ -1,28 +1,21 @@
 ﻿using EPiServer;
-using EPiServer.ServiceLocation;
+using Geta.Optimizely.Categories.Configuration;
 using Geta.Optimizely.Categories.Extensions;
-using Microsoft.IdentityModel.Protocols;
+using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories
 {
-    [ServiceConfiguration(typeof(CategorySettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class CategorySettings
     {
         private readonly IContentRepository _contentRepository;
 
-        public CategorySettings(IContentRepository contentRepository)
+        public CategorySettings(IContentRepository contentRepository, IOptions<CategoriesOptions> options)
         {
             _contentRepository = contentRepository;
+            var configuration = options.Value;
 
-            if (bool.TryParse(ConfigurationManager<>.AppSettings["GetaEpiCategories:DisableCategoryAsLinkableType"], out var disableCategoryLinkableType))
-            {
-                DisableCategoryAsLinkableType = disableCategoryLinkableType;
-            }
-
-            if (bool.TryParse(ConfigurationManager.AppSettings["GetaEpiCategories:HideDisallowedRootCategories"], out var hideDisallowedRootCategories))
-            {
-                HideDisallowedRootCategories = hideDisallowedRootCategories;
-            }
+            DisableCategoryAsLinkableType = configuration.DisableCategoryAsLinkableType;
+            HideDisallowedRootCategories = configuration.HideDisallowedRootCategories;
         }
 
         public int GlobalCategoriesRoot => _contentRepository.GetOrCreateGlobalCategoriesRoot().ID;

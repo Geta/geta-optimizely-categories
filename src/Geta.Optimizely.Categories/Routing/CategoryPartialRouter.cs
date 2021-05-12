@@ -4,29 +4,30 @@ using System.Globalization;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Core.Routing;
+using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
-using EPiServer.ServiceLocation;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.IdentityModel.Protocols;
+using Geta.Optimizely.Categories.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories.Routing
 {
-    [ServiceConfiguration(typeof(CategoryPartialRouter), Lifecycle = ServiceInstanceScope.Singleton)]
     public class CategoryPartialRouter : IPartialRouter<ICategoryRoutableContent, ICategoryRoutableContent>
     {
         protected readonly IContentLoader ContentLoader;
         protected readonly ICategoryContentLoader CategoryLoader;
         protected readonly LanguageResolver LanguageResolver;
-        public static string CategorySeparator = ConfigurationManager<>.AppSettings["GetaEpiCategories:CategorySeparator"] ?? "__";
+        protected readonly CategoriesOptions Configuration;
+        public string CategorySeparator => Configuration.CategorySeparator;
 
-        public CategoryPartialRouter(IContentLoader contentLoader, ICategoryContentLoader categoryLoader, LanguageResolver languageResolver)
+        public CategoryPartialRouter(IContentLoader contentLoader, ICategoryContentLoader categoryLoader, LanguageResolver languageResolver, IOptions<CategoriesOptions> options)
         {
             ContentLoader = contentLoader;
             CategoryLoader = categoryLoader;
             LanguageResolver = languageResolver;
+            Configuration = options.Value;
         }
 
-        public object RoutePartial(ICategoryRoutableContent content, SegmentContext segmentContext)
+        public object RoutePartial(ICategoryRoutableContent content, UrlResolverContext segmentContext)
         {
             var thisSegment = segmentContext.RemainingPath;
             var nextSegment = segmentContext.GetNextValue(segmentContext.RemainingPath);
@@ -66,7 +67,7 @@ namespace Geta.Optimizely.Categories.Routing
             return null;
         }
 
-        public PartialRouteData GetPartialVirtualPath(ICategoryRoutableContent content, string language, RouteValueDictionary routeValues, RequestContext requestContext)
+        public PartialRouteData GetPartialVirtualPath(ICategoryRoutableContent content, UrlGeneratorContext urlGeneratorContext)
         {
             if (requestContext.IsInEditMode())
             {
