@@ -2,54 +2,54 @@
 using System.Globalization;
 using EPiServer;
 using EPiServer.Core;
-using Microsoft.AspNetCore.Routing;
+using EPiServer.Web.Routing;
+using Microsoft.AspNetCore.Http;
 
 namespace Geta.Optimizely.Categories
 {
-    public class DefaultCategoryRouteHelper : DefaultContentRouteHelper, ICategoryRouteHelper
+    public class DefaultCategoryRouteHelper : ICategoryRouteHelper
     {
+        private readonly ContentRouteData _contentRouteData;
+        private readonly IContentLoader _contentLoader;
         private CategoryData _categoryData;
         private readonly Lazy<ContentReference> _categoryLink;
 
-        public DefaultCategoryRouteHelper(RequestContext requestContext, RouteCollection routes, IViewContentRetriever viewContentRetriever, IContentLoader contentLoader) : base(requestContext, routes, viewContentRetriever, contentLoader)
+        public string LanguageID => _contentRouteData?.RouteLanguage;
+        public ContentReference ContentLink => _contentRouteData?.Content.ContentLink;
+        public IContent Content => _contentRouteData?.Content;
+        public virtual ContentReference CategoryLink => _categoryLink.Value;
+
+        public virtual CategoryData Category => _categoryData
+            ??= _contentLoader.Get<CategoryData>(
+                _categoryLink.Value,
+                string.IsNullOrEmpty(LanguageID) ? null : CultureInfo.GetCultureInfo(LanguageID));
+
+        public DefaultCategoryRouteHelper(
+            ContentRouteData contentRouteData,
+            HttpContext httpContext,
+            IContentLoader contentLoader)
         {
-            DefaultCategoryRouteHelper defaultCategoryRouteHelper = this;
+            _contentRouteData = contentRouteData;
+            _contentLoader = contentLoader;
 
-            this._categoryLink = new Lazy<ContentReference>(() =>
+            _categoryLink = new Lazy<ContentReference>(() =>
             {
-                defaultCategoryRouteHelper.SetRouteDataIfPageNotRouted();
-                ContentReference categoryLink = requestContext.GetContentLink();
+                var categoryLink = httpContext.GetContentLink();
 
-                if (defaultCategoryRouteHelper.GetCategoryData(categoryLink) == null)
+                if (GetCategoryData(categoryLink) == null)
                 {
-                    CategoryData categoryData = defaultCategoryRouteHelper.GetCategoryData(requestContext.GetOriginalRoutedLink());
-                    categoryLink = categoryData?.ContentLink ?? ContentReference.EmptyReference;
+                    categoryLink = ContentReference.EmptyReference;
                 }
 
                 return categoryLink;
             }, true);
         }
 
-        public virtual ContentReference CategoryLink => this._categoryLink.Value;
-
-        public virtual CategoryData Category => this._categoryData
-                                                    ??
-                                                    (this._categoryData =
-                                                        this.ContentRetriever.GetContent(this._categoryLink.Value,
-                                                            string.IsNullOrEmpty(this.LanguageID)
-                                                                ? null
-                                                                : CultureInfo.GetCultureInfo(this.LanguageID)) as
-                                                            CategoryData);
-
-
         protected virtual CategoryData GetCategoryData(ContentReference categoryLink)
         {
-            IContent content;
-
-            if (this.ContentLoader.TryGet(categoryLink, out content))
-                return content as CategoryData;
-
-            return null;
+            return _contentLoader.TryGet(categoryLink, out IContent content)
+                ? content as CategoryData
+                : null;
         }
     }
 }
