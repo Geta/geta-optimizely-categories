@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Globalization;
-using Microsoft.AspNetCore.Mvc;
+using EPiServer.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Geta.Optimizely.Categories.Routing
 {
     public class CategoryDataValueProvider : IValueProvider
     {
-        protected readonly ControllerContext ControllerContext;
+        protected readonly HttpContext HttpContext;
 
-        public CategoryDataValueProvider(ControllerContext controllerContext)
+        public CategoryDataValueProvider(HttpContext httpContext)
         {
-            ControllerContext = controllerContext;
+            HttpContext = httpContext;
         }
 
         public bool ContainsPrefix(string prefix)
@@ -23,17 +24,19 @@ namespace Geta.Optimizely.Categories.Routing
         {
             if (ContainsPrefix(key) == false)
             {
-                return null;
+                return ValueProviderResult.None;
             }
 
-            var categoryData = ControllerContext.RequestContext.GetCustomRouteData<CategoryData>(CategoryRoutingConstants.CurrentCategory);
-
-            if (categoryData != null)
+            var routeValues = HttpContext.Request.RouteValues;
+            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out var currentCategory))
             {
-                return new ValueProviderResult(categoryData, categoryData.ContentLink.ToString(), CultureInfo.InvariantCulture);
+                if (currentCategory is ContentReference currentCategoryLink)
+                {
+                    return new ValueProviderResult(currentCategoryLink.ToString(), CultureInfo.InvariantCulture);
+                }
             }
 
-            return null;
+            return ValueProviderResult.None;
         }
     }
 }

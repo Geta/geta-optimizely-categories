@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Core.Routing;
 using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
+using EPiServer.Web;
 using Geta.Optimizely.Categories.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -30,11 +32,11 @@ namespace Geta.Optimizely.Categories.Routing
         public object RoutePartial(ICategoryRoutableContent content, UrlResolverContext segmentContext)
         {
             var thisSegment = segmentContext.RemainingPath;
-            var nextSegment = segmentContext.GetNextValue(segmentContext.RemainingPath);
+            var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
 
             while (string.IsNullOrEmpty(nextSegment.Remaining) == false)
             {
-                nextSegment = segmentContext.GetNextValue(nextSegment.Remaining);
+                nextSegment = segmentContext.GetNextRemainingSegment(nextSegment.Remaining);
             }
 
             if (string.IsNullOrWhiteSpace(nextSegment.Next) == false)
@@ -56,10 +58,18 @@ namespace Geta.Optimizely.Categories.Routing
                 }
 
                 segmentContext.RemainingPath = thisSegment.Substring(0, thisSegment.LastIndexOf(nextSegment.Next, StringComparison.InvariantCultureIgnoreCase));
-                segmentContext.SetCustomRouteData(CategoryRoutingConstants.CurrentCategory, categories[0]);
-                segmentContext.SetCustomRouteData(CategoryRoutingConstants.CurrentCategories, categories);
-                segmentContext.RoutedContentLink = content.ContentLink;
-                segmentContext.RoutedObject = content;
+
+                var categoryLinks = categories.Select(x => x.ContentLink).ToList();
+
+                if (categoryLinks.Count == 1)
+                {
+                    segmentContext.RouteValues.Add(CategoryRoutingConstants.CurrentCategory, categoryLinks.First());
+                }
+                else
+                {
+                    segmentContext.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryLinks);
+                }
+                segmentContext.Content = content;
 
                 return content;
             }
@@ -69,10 +79,12 @@ namespace Geta.Optimizely.Categories.Routing
 
         public PartialRouteData GetPartialVirtualPath(ICategoryRoutableContent content, UrlGeneratorContext urlGeneratorContext)
         {
-            if (requestContext.IsInEditMode())
+            if (urlGeneratorContext.ContextMode == ContextMode.Edit)
             {
                 return null;
             }
+
+            var routeValues = urlGeneratorContext.RouteValues;
 
             // Single category
             object currentCategory;
@@ -100,7 +112,7 @@ namespace Geta.Optimizely.Categories.Routing
 
             // Multiple categories
             object currentCategories;
-            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategories, out currentCategories))
+            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out currentCategories))
             {
                 var categoryContentLinks = currentCategories as IEnumerable<ContentReference>;
 
@@ -121,7 +133,7 @@ namespace Geta.Optimizely.Categories.Routing
                 categorySegments.Sort(StringComparer.Create(LanguageResolver.GetPreferredCulture(), true));
 
                 // Remove from query now that it's handled.
-                routeValues.Remove(CategoryRoutingConstants.CurrentCategories);
+                routeValues.Remove(CategoryRoutingConstants.CurrentCategory);
 
                 return new PartialRouteData
                 {

@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Geta.Optimizely.Categories.Routing
 {
-    public class CategoryDataValueProviderFactory : ValueProviderFactory
+    public class CategoryDataValueProviderFactory : IValueProviderFactory
     {
-        public override IValueProvider GetValueProvider(ControllerContext controllerContext)
+        public Task CreateValueProviderAsync(ValueProviderFactoryContext context)
         {
-            return new CategoryDataValueProvider(controllerContext);
+            var provider = new CategoryDataValueProvider(context.ActionContext.HttpContext);
+            context.ValueProviders.Add(provider);
+            return Task.CompletedTask;
         }
     }
 }

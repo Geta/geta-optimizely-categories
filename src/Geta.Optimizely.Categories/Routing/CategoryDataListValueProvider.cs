@@ -1,18 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using EPiServer.Core;
+using Geta.Optimizely.Categories.Configuration;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories.Routing
 {
     public class CategoryDataListValueProvider : IValueProvider
     {
-        protected readonly ControllerContext ControllerContext;
+        protected readonly HttpContext HttpContext;
+        protected readonly CategoriesOptions Configuration;
 
-        public CategoryDataListValueProvider(ControllerContext controllerContext)
+        public CategoryDataListValueProvider(HttpContext httpContext, IOptions<CategoriesOptions> options)
         {
-            ControllerContext = controllerContext;
+            HttpContext = httpContext;
+            Configuration = options.Value;
         }
 
         public bool ContainsPrefix(string prefix)
@@ -24,17 +30,20 @@ namespace Geta.Optimizely.Categories.Routing
         {
             if (ContainsPrefix(key) == false)
             {
-                return null;
+                return ValueProviderResult.None;
             }
 
-            var categories = ControllerContext.RequestContext.GetCustomRouteData<IList<CategoryData>>(CategoryRoutingConstants.CurrentCategories);
-
-            if (categories != null)
+            var routeValues = HttpContext.Request.RouteValues;
+            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out var currentCategories))
             {
-                return new ValueProviderResult(categories, string.Join(CategoryPartialRouter.CategorySeparator, categories.Select(x => x.ContentLink)), CultureInfo.InvariantCulture);
+                if (currentCategories is IEnumerable<ContentReference> currentCategoryLinks)
+                {
+                    var values = string.Join(Configuration.CategorySeparator, currentCategoryLinks.Select(x => x.ToString()));
+                    return new ValueProviderResult(values, CultureInfo.InvariantCulture);
+                }
             }
 
-            return new ValueProviderResult(new List<CategoryData>(), string.Empty, CultureInfo.InvariantCulture);
+            return ValueProviderResult.None;
         }
     }
 }
