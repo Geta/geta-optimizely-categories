@@ -8,24 +8,23 @@ namespace Geta.Optimizely.Categories.Extensions
 {
     public static class UrlResolverExtensions
     {
-        public static string GetCategoryRoutedUrl(this IUrlResolver urlResolver, ContentReference contentLink, ContentReference categoryContentLink)
+        public static string GetCategoryRoutedUrl(
+            this IUrlResolver urlResolver, ContentReference contentLink, ContentReference categoryContentLink)
         {
-            return urlResolver.GetVirtualPath(contentLink, null,
-                new VirtualPathArguments
-                {
-                    RouteValues = new RouteValueDictionary {{CategoryRoutingConstants.CurrentCategory, categoryContentLink}}
-                })
-                .GetUrl();
+            return urlResolver.GetUrl(contentLink, null, new UrlResolverArguments
+            {
+                RouteValues = new RouteValueDictionary {{CategoryRoutingConstants.CurrentCategory, categoryContentLink}}
+            });
         }
 
-        public static string GetCategoryRoutedUrl(this IUrlResolver urlResolver, ContentReference contentLink, IEnumerable<ContentReference> categoryContentLinks)
+        public static string GetCategoryRoutedUrl(
+            this IUrlResolver urlResolver, ContentReference contentLink, IEnumerable<ContentReference> categoryContentLinks)
         {
-            return urlResolver.GetVirtualPath(contentLink, null,
-                new VirtualPathArguments
-                {
-                    RouteValues = new RouteValueDictionary { { CategoryRoutingConstants.CurrentCategories, categoryContentLinks } }
-                })
-                .GetUrl();
+            return urlResolver.GetUrl(contentLink, null, new UrlResolverArguments
+            {
+                RouteValues = new RouteValueDictionary
+                    {{CategoryRoutingConstants.CurrentCategory, categoryContentLinks}}
+            });
         }
     }
 }
