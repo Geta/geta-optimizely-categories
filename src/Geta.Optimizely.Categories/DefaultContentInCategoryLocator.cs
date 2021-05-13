@@ -4,6 +4,7 @@ using System.Linq;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Globalization;
+using Geta.Optimizely.Categories.Extensions;
 
 namespace Geta.Optimizely.Categories
 {
