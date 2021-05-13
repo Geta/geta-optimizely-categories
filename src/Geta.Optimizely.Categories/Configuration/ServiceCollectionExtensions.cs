@@ -20,6 +20,11 @@ namespace Geta.Optimizely.Categories.Configuration
             this IServiceCollection services,
             Action<CategoriesOptions> setupAction)
         {
+            services.AddMvc(o =>
+            {
+                o.ValueProviderFactories.Add(new CategoryDataValueProviderFactory());
+                o.ValueProviderFactories.Add(new CategoryDataListValueProviderFactory());
+            });
             AddModule(services);
 
             services.AddSingleton<CategoryPartialRouter>();
