@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.ServiceLocation;
@@ -48,4 +48,4 @@ namespace Geta.Optimizely.Categories.Extensions
             return route;
         }
     }
-}
+}*/

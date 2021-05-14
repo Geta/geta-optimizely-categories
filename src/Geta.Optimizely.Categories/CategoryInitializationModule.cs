@@ -22,24 +22,21 @@ namespace Geta.Optimizely.Categories
                 return;
             }
 
-            ValueProviderFactories.Factories.Add(new CategoryDataValueProviderFactory());
-            ValueProviderFactories.Factories.Add(new CategoryDataListValueProviderFactory());
-
             var locator = context.Locate.Advanced;
             var contentEvents = context.Locate.ContentEvents();
 
             contentEvents.CreatingContent += OnCreatingContent;
-            Global.RoutesRegistered += OnEpiserverRoutesRegistered;
-            RouteTable.Routes.RegisterPartialRouter(locator.GetInstance<CategoryPartialRouter>());
+            /*Global.RoutesRegistered += OnEpiserverRoutesRegistered;
+            RouteTable.Routes.RegisterPartialRouter(locator.GetInstance<CategoryPartialRouter>());*/
 
             _isInitialized = true;
         }
 
-        private void OnEpiserverRoutesRegistered(object sender, RouteRegistrationEventArgs routeRegistrationEventArgs)
+        /*private void OnEpiserverRoutesRegistered(object sender, RouteRegistrationEventArgs routeRegistrationEventArgs)
         {
             RouteTable.Routes.MapSiteCategoryRoute("sitecategories", "{language}/{node}/{partial}/{action}", new { action = "index" }, sd => sd.SiteAssetsRoot);
             RouteTable.Routes.MapGlobalCategoryRoute("sharedcategories", "{language}/{node}/{partial}/{action}", new {action = "index"}, sd => sd.GlobalAssetsRoot);
-        }
+        }*/
 
         public void Uninitialize(InitializationEngine context)
         {

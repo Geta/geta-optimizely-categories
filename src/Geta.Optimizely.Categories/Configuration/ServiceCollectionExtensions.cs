@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Linq;
+using EPiServer.Core.Routing;
+using EPiServer.Core.Routing.Pipeline;
 using EPiServer.DependencyInjection;
 using EPiServer.Shell;
 using EPiServer.Shell.Modules;
+using EPiServer.Shell.ObjectEditing;
+using Geta.Optimizely.Categories.DataAnnotations;
 using Geta.Optimizely.Categories.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,11 +29,14 @@ namespace Geta.Optimizely.Categories.Configuration
                 o.ValueProviderFactories.Add(new CategoryDataValueProviderFactory());
                 o.ValueProviderFactories.Add(new CategoryDataListValueProviderFactory());
             });
+
             AddModule(services);
 
-            services.AddSingleton<CategoryPartialRouter>();
+            services.AddSingleton<IPartialRouter, CategoryPartialRouter>();
             services.AddSingleton<CategorySettings>();
             services.AddTransient<IContentRepositoryDescriptor, CategoryContentRepositoryDescriptor>();
+            services.AddSingleton<IContentRouteRegister, SharedCategoriesRouteRegister>();
+            services.AddSingleton<IContentRouteRegister, SiteCategoriesRouteRegister>();
 
             services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
             services.AddSingleton<IContentInCategoryLocator, DefaultContentInCategoryLocator>();
