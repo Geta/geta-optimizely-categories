@@ -14,7 +14,8 @@ namespace Geta.Optimizely.Categories
         {
         }
 
-        public CategoryTreeComponent(CategorySettings categorySettings) : base("epi-cms/component/MainNavigationComponent")
+        public CategoryTreeComponent(CategorySettings categorySettings)
+            : base("epi-cms/component/MainNavigationComponent")
         {
             LanguagePath = "/getacategories/treecomponent";
 
@@ -40,10 +41,7 @@ namespace Geta.Optimizely.Categories
 
                 return LocalizationService.GetString($"{LanguagePath}/title", "Categories");
             }
-            set
-            {
-                _title = value;
-            }
+            set => _title = value;
         }
 
         public override string Description
@@ -57,10 +55,7 @@ namespace Geta.Optimizely.Categories
 
                 return LocalizationService.GetString($"{LanguagePath}/description", "Category management");
             }
-            set
-            {
-                _description = value;
-            }
+            set => _description = value;
         }
     }
 }

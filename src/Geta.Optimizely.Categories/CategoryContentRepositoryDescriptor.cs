@@ -52,12 +52,12 @@ namespace Geta.Optimizely.Categories
             {
                 var list = new List<ContentReference>
                 {
-                    new ContentReference(this.CategorySettings.GlobalCategoriesRoot)
+                    new ContentReference(CategorySettings.GlobalCategoriesRoot)
                 };
 
                 if (SiteDefinition.Current.GlobalAssetsRoot != SiteDefinition.Current.SiteAssetsRoot)
                 {
-                    list.Add(new ContentReference(this.CategorySettings.SiteCategoriesRoot));
+                    list.Add(new ContentReference(CategorySettings.SiteCategoriesRoot));
                 }
 
                 return list;
