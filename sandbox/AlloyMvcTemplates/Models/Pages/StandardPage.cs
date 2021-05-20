@@ -1,7 +1,9 @@
-﻿using EPiServer.Core;
+﻿using System.Collections.Generic;
+using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
 using System.ComponentModel.DataAnnotations;
+using Geta.Optimizely.Categories;
 
 namespace AlloyMvcTemplates.Models.Pages
 {
@@ -22,5 +24,11 @@ namespace AlloyMvcTemplates.Models.Pages
             GroupName = SystemTabNames.Content,
             Order = 320)]
         public virtual ContentArea MainContentArea { get; set; }
+
+        [UIHint(CategoryUIHint.Category)]
+        public virtual ContentReference CustomCategory { get; set; }
+
+        [UIHint(CategoryUIHint.Categories)]
+        public virtual IList<ContentReference> CustomCategories { get; set; }
     }
 }

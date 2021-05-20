@@ -5,8 +5,6 @@ using EPiServer.Core.Routing.Pipeline;
 using EPiServer.DependencyInjection;
 using EPiServer.Shell;
 using EPiServer.Shell.Modules;
-using EPiServer.Shell.ObjectEditing;
-using Geta.Optimizely.Categories.DataAnnotations;
 using Geta.Optimizely.Categories.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

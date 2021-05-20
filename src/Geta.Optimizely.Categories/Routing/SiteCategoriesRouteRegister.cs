@@ -11,8 +11,7 @@ namespace Geta.Optimizely.Categories.Routing
                 var definition = new ContentRouteDefinition
                 {
                     Name = "SiteCategories",
-                    RouteRootResolver = sd => sd.SiteAssetsRoot,
-                    StaticSegments = new[] {"sitecategories"}
+                    RouteRootResolver = sd => sd.SiteAssetsRoot
                 };
                 return definition;
             }

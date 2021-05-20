@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
+using Geta.Optimizely.Categories.Configuration;
 
 namespace AlloyMvcTemplates
 {
@@ -50,6 +51,7 @@ namespace AlloyMvcTemplates
             services.AddMvc();
             services.AddCms();
             services.AddAlloy();
+            services.AddCategories();
 
             services.Configure<UIOptions>(uiOptions =>
             {

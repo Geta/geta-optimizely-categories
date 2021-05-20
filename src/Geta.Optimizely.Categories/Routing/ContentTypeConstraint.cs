@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Geta.Optimizely.Categories.Routing
 {
-    public class ContentTypeConstraint<TContentType> : IContentRouteConstraint where TContentType : IContent
+    /*public class ContentTypeConstraint<TContentType> : IContentRouteConstraint where TContentType : IContent
     {
         private readonly IContentLoader _contentLoader;
 
@@ -28,5 +28,5 @@ namespace Geta.Optimizely.Categories.Routing
             segmentContext.RoutedObject = content;
             return true;
         }
-    }
+    }*/
 }

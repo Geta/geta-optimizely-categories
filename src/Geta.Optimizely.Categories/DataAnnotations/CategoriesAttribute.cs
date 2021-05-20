@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace Geta.Optimizely.Categories.DataAnnotations
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class CategoriesAttribute : Attribute, IMetadataAware
+    public class CategoriesAttribute : Attribute //, IMetadataAware
     {
-        private readonly CategorySettings _categorySettings;
+        /*private readonly CategorySettings _categorySettings;
         private readonly IEnumerable<IContentRepositoryDescriptor> _contentRepositoryDescriptors;
 
         public CategoriesAttribute() : this(ServiceLocator.Current.GetInstance<IEnumerable<IContentRepositoryDescriptor>>(), ServiceLocator.Current.GetInstance<CategorySettings>())
@@ -43,6 +43,6 @@ namespace Geta.Optimizely.Categories.DataAnnotations
             extendedMetadata.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
             extendedMetadata.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
             extendedMetadata.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
-        }
+        }*/
     }
 }

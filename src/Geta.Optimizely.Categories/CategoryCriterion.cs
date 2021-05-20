@@ -18,7 +18,7 @@ namespace Geta.Optimizely.Categories
         private readonly IStateStorage _stateStorage;
         private readonly IContentLoader _contentLoader;
         private readonly ICategoryContentLoader _categoryContentLoader;
-        private const string _STORAGEKEY = "Epi:GetaCategoryViewedPage";
+        private const string _STORAGEKEY = "Optimizely:GetaCategoryViewedPage";
 
         public CategoryCriterion()
             : this(ServiceLocator.Current.GetInstance<IStateStorage>(),
