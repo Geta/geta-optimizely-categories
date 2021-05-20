@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
+using EPiServer.Framework.Web.Resources;
 using Geta.Optimizely.Categories.Configuration;
 
 namespace AlloyMvcTemplates
@@ -51,11 +52,18 @@ namespace AlloyMvcTemplates
             services.AddMvc();
             services.AddCms();
             services.AddAlloy();
+
             services.AddCategories();
 
             services.Configure<UIOptions>(uiOptions =>
             {
                 uiOptions.UIShowGlobalizationUserInterface = true;
+            });
+
+            services.Configure<ClientResourceOptions>(options =>
+            {
+                options.Debug = true;
+                options.Compress = false;
             });
 
             services.AddEmbeddedLocalization<Startup>();
