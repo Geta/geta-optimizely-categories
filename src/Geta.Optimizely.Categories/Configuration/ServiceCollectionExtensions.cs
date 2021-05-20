@@ -31,15 +31,15 @@ namespace Geta.Optimizely.Categories.Configuration
             AddModule(services);
 
             services.AddSingleton<IPartialRouter, CategoryPartialRouter>();
-            services.AddSingleton<CategorySettings>();
-            services.AddTransient<IContentRepositoryDescriptor, CategoryContentRepositoryDescriptor>();
             services.AddSingleton<IContentRouteRegister, SharedCategoriesRouteRegister>();
             services.AddSingleton<IContentRouteRegister, SiteCategoriesRouteRegister>();
+            services.AddTransient<IContentRepositoryDescriptor, CategoryContentRepositoryDescriptor>();
 
-            services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
             services.AddSingleton<IContentInCategoryLocator, DefaultContentInCategoryLocator>();
+            services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
             services.AddScoped<ICategoryRouteHelper, DefaultCategoryRouteHelper>();
 
+            services.AddSingleton<CategorySettings>();
             services.AddOptions<CategoriesOptions>().Configure<IConfiguration>((options, configuration) =>
             {
                 setupAction(options);
