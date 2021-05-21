@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using EPiServer.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -32,16 +31,9 @@ namespace Geta.Optimizely.Categories.Routing
                 categories.Add(category);
             }
 
-            bindingContext.Result = IsSingleCategory(bindingContext)
-                ? ModelBindingResult.Success(categories.First())
-                : ModelBindingResult.Success(categories);
+            bindingContext.Result = ModelBindingResult.Success(categories);
 
             return Task.CompletedTask;
-        }
-
-        private static bool IsSingleCategory(ModelBindingContext bindingContext)
-        {
-            return bindingContext.ModelMetadata.ModelType == typeof(CategoryData);
         }
     }
 }

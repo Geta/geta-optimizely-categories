@@ -4,23 +4,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Geta.Optimizely.Categories.Routing
 {
-    public class CategoryModelBinderProvider : IModelBinderProvider
+    public class CategoryListModelBinderProvider : IModelBinderProvider
     {
         public IModelBinder GetBinder(ModelBinderProviderContext context)
         {
-            if (IsCategoryList(context) || IsSingleCategory(context))
+            if (IsCategoryList(context))
             {
                 var categoryContentLoader = context.Services.GetRequiredService<ICategoryContentLoader>();
                 return new CategoryModelBinder(categoryContentLoader);
             }
 
             return null;
-        }
-
-        private static bool IsSingleCategory(ModelBinderProviderContext context)
-        {
-            return CategoryRoutingConstants.CurrentCategory == context.Metadata.Name
-                   && context.Metadata.ModelType == typeof(CategoryData);
         }
 
         private static bool IsCategoryList(ModelBinderProviderContext context)

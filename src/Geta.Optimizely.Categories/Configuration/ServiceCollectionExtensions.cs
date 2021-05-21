@@ -23,10 +23,9 @@ namespace Geta.Optimizely.Categories.Configuration
             this IServiceCollection services,
             Action<CategoriesOptions> setupAction)
         {
-
             services.Configure<MvcOptions>(o =>
             {
-                o.ModelBinderProviders.Insert(0, new CategoryModelBinderProvider());
+                o.ModelBinderProviders.Insert(0, new CategoryListModelBinderProvider());
             });
 
             AddModule(services);
