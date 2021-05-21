@@ -12,7 +12,7 @@ namespace AlloyMvcTemplates.Models.Pages
     /// </summary>
     [SiteContentType(GUID = "9CCC8A41-5C8C-4BE0-8E73-520FF3DE8267")]
     [SiteImageUrl(Global.StaticGraphicsFolderPath + "page-type-thumbnail-standard.png")]
-    public class StandardPage : SitePageData
+    public class StandardPage : SitePageData, ICategoryRoutableContent
     {
         [Display(
             GroupName = SystemTabNames.Content,

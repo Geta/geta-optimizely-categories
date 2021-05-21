@@ -6,6 +6,7 @@ using EPiServer.DependencyInjection;
 using EPiServer.Shell;
 using EPiServer.Shell.Modules;
 using Geta.Optimizely.Categories.Routing;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,10 +23,10 @@ namespace Geta.Optimizely.Categories.Configuration
             this IServiceCollection services,
             Action<CategoriesOptions> setupAction)
         {
-            services.AddMvc(o =>
+
+            services.Configure<MvcOptions>(o =>
             {
-                o.ValueProviderFactories.Add(new CategoryDataValueProviderFactory());
-                o.ValueProviderFactories.Add(new CategoryDataListValueProviderFactory());
+                o.ModelBinderProviders.Insert(0, new CategoryModelBinderProvider());
             });
 
             AddModule(services);

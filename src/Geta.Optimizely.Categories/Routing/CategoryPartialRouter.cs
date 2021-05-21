@@ -9,6 +9,7 @@ using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
 using EPiServer.Web;
 using Geta.Optimizely.Categories.Configuration;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories.Routing
@@ -18,19 +19,29 @@ namespace Geta.Optimizely.Categories.Routing
         protected readonly IContentLoader ContentLoader;
         protected readonly ICategoryContentLoader CategoryLoader;
         protected readonly LanguageResolver LanguageResolver;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         protected readonly CategoriesOptions Configuration;
         public string CategorySeparator => Configuration.CategorySeparator;
+        private HttpContext HttpContext => _httpContextAccessor.HttpContext;
 
-        public CategoryPartialRouter(IContentLoader contentLoader, ICategoryContentLoader categoryLoader, LanguageResolver languageResolver, IOptions<CategoriesOptions> options)
+        public CategoryPartialRouter(
+            IContentLoader contentLoader,
+            ICategoryContentLoader categoryLoader,
+            LanguageResolver languageResolver,
+            IOptions<CategoriesOptions> options,
+            IHttpContextAccessor httpContextAccessor)
         {
             ContentLoader = contentLoader;
             CategoryLoader = categoryLoader;
             LanguageResolver = languageResolver;
+            _httpContextAccessor = httpContextAccessor;
             Configuration = options.Value;
         }
 
         public object RoutePartial(ICategoryRoutableContent content, UrlResolverContext segmentContext)
         {
+            if (CategoriesResolved()) return null;
+
             var thisSegment = segmentContext.RemainingPath;
             var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
 
@@ -42,39 +53,23 @@ namespace Geta.Optimizely.Categories.Routing
             if (string.IsNullOrWhiteSpace(nextSegment.Next) == false)
             {
                 var localizableContent = content as ILocale;
-                CultureInfo preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
+                var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
 
-                string[] categoryUrlSegments = nextSegment.Next.Split(new [] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
-                var categories = new List<CategoryData>();
-
-                foreach (var categoryUrlSegment in categoryUrlSegments)
-                {
-                    var category = CategoryLoader.GetFirstBySegment<CategoryData>(categoryUrlSegment, preferredCulture);
-
-                    if (category == null)
-                        return null;
-
-                    categories.Add(category);
-                }
+                var categories = nextSegment.Next.Split(new [] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
 
                 segmentContext.RemainingPath = thisSegment.Substring(0, thisSegment.LastIndexOf(nextSegment.Next, StringComparison.InvariantCultureIgnoreCase));
 
-                var categoryLinks = categories.Select(x => x.ContentLink).ToList();
-
-                if (categoryLinks.Count == 1)
-                {
-                    segmentContext.RouteValues.Add(CategoryRoutingConstants.CurrentCategory, categoryLinks.First());
-                }
-                else
-                {
-                    segmentContext.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryLinks);
-                }
-                segmentContext.Content = content;
+                HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categories);
 
                 return content;
             }
 
             return null;
+        }
+
+        private bool CategoriesResolved()
+        {
+            return HttpContext.Request.RouteValues.ContainsKey(CategoryRoutingConstants.CurrentCategories);
         }
 
         public PartialRouteData GetPartialVirtualPath(ICategoryRoutableContent content, UrlGeneratorContext urlGeneratorContext)
