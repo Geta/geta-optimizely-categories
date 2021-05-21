@@ -27,7 +27,6 @@ namespace Geta.Optimizely.Categories
 
             SortOrder = 105;
             Settings.Add(new Setting("repositoryKey", CategoryContentRepositoryDescriptor.RepositoryKey));
-            Settings.Add(new Setting("categorySettings", categorySettings));
         }
 
         public override string Title

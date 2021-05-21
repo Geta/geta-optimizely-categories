@@ -16,7 +16,7 @@ namespace Geta.Optimizely.Categories
             CategorySettings = categorySettings;
         }
 
-        public readonly CategorySettings CategorySettings;
+        public CategorySettings CategorySettings { get; }
 
         public static string RepositoryKey = "categories";
 
