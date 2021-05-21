@@ -278,7 +278,7 @@ function (
             this.categorySelectorDialog = new CategorySelectorDialog({
                 categorySettings: this.categorySettings,
                 repositoryKey: this.repositoryKey,
-                roots: this.roots,
+                roots: this.settings.roots,
                 allowedTypes: this.allowedTypes,
                 restrictedTypes: this.restrictedTypes,
                 showSearchBox: this.showSearchBox,
