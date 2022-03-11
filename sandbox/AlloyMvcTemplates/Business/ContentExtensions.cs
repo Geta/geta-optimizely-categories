@@ -1,12 +1,12 @@
-﻿using EPiServer;
+﻿using System.Collections.Generic;
+using System.Linq;
 using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.Framework.Web;
 using EPiServer.ServiceLocation;
-using System.Collections.Generic;
-using System.Linq;
+using EPiServer;
 
-namespace AlloyMvcTemplates.Business
+namespace AlloyTemplates.Business
 {
     /// <summary>
     /// Extension methods for content

@@ -1,9 +1,10 @@
-using AlloyMvcTemplates.Business.Rendering;
+using AlloyTemplates.Business.Rendering;
 using Microsoft.AspNetCore.Mvc.Razor;
 using System.Collections.Generic;
 
 namespace AlloyMvcTemplates.Business.Rendering
 {
+
     public class SiteViewEngineLocationExpander : IViewLocationExpander
     {
         private static readonly string[] AdditionalPartialViewFormats = new[]

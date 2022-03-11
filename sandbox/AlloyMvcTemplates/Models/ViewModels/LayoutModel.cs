@@ -1,8 +1,8 @@
-﻿using AlloyMvcTemplates.Models.Blocks;
-using EPiServer.SpecializedProperties;
+﻿using EPiServer.SpecializedProperties;
+using AlloyTemplates.Models.Blocks;
 using Microsoft.AspNetCore.Html;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class LayoutModel
     {
@@ -19,6 +19,6 @@ namespace AlloyMvcTemplates.Models.ViewModels
         public HtmlString LogOutUrl { get; set; }
         public HtmlString SearchActionUrl { get; set; }
 
-        public bool IsInReadonlyMode { get; set; }
+        public bool IsInReadonlyMode {get;set;}
     }
 }

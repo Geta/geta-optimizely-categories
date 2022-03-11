@@ -1,12 +1,14 @@
-using AlloyMvcTemplates.Business;
-using AlloyMvcTemplates.Models.Pages;
-using AlloyMvcTemplates.Models.ViewModels;
-using EPiServer.Shell.Security;
+using AlloyTemplates.Business;
+using AlloyTemplates.Models.Pages;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer.Web.Mvc;
+using EPiServer.Shell.Security;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using EPiServer.Web.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace AlloyMvcTemplates.Controllers
+namespace AlloyTemplates.Controllers
 {
     /// <summary>
     /// All controllers that renders pages should inherit from this class so that we can
@@ -30,7 +32,7 @@ namespace AlloyMvcTemplates.Controllers
         public async Task<IActionResult> Logout()
         {
             await UISignInManager.Service.SignOutAsync();
-            return RedirectToAction("Index");
+            return Redirect(HttpContext.RequestServices.GetService<UrlResolver>().GetUrl(PageContext.ContentLink, PageContext.LanguageID));
         }
 
         public virtual void ModifyLayout(LayoutModel layoutModel)

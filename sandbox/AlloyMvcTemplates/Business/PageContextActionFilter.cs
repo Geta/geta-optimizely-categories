@@ -1,10 +1,10 @@
-using AlloyMvcTemplates.Models.Pages;
-using AlloyMvcTemplates.Models.ViewModels;
+using AlloyTemplates.Models.Pages;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer.Web.Routing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace AlloyMvcTemplates.Business
+namespace AlloyTemplates.Business
 {
     /// <summary>
     /// Intercepts actions with view models of type IPageViewModel and populates the view models
@@ -32,15 +32,15 @@ namespace AlloyMvcTemplates.Business
             if (model != null)
             {
                 var currentContentLink = filterContext.HttpContext.GetContentLink();
-
+                
                 var layoutModel = model.Layout ?? _contextFactory.CreateLayoutModel(currentContentLink, filterContext.HttpContext);
-
+                
                 var layoutController = filterContext.Controller as IModifyLayout;
-                if (layoutController != null)
+                if(layoutController != null)
                 {
                     layoutController.ModifyLayout(layoutModel);
                 }
-
+                
                 model.Layout = layoutModel;
 
                 if (model.Section == null)

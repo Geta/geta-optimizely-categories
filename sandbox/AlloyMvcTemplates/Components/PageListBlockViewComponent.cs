@@ -1,8 +1,7 @@
-using AlloyMvcTemplates.Business;
-using AlloyMvcTemplates.Models.Blocks;
-using AlloyMvcTemplates.Models.ViewModels;
+using AlloyTemplates.Business;
+using AlloyTemplates.Models.Blocks;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer;
-using EPiServer.Cms.AspNetCore.Mvc;
 using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.Web.Mvc;
@@ -10,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AlloyMvcTemplates.Controllers
+namespace AlloyTemplates.Controllers
 {
     public class PageListBlockViewComponent : BlockComponent<PageListBlock>
     {
@@ -22,13 +21,13 @@ namespace AlloyMvcTemplates.Controllers
             this.contentLoader = contentLoader;
         }
 
-        public override IViewComponentResult Invoke(PageListBlock currentBlock)
+        protected override IViewComponentResult InvokeComponent(PageListBlock currentBlock)
         {
             var pages = FindPages(currentBlock);
 
             pages = Sort(pages, currentBlock.SortOrder);
-
-            if (currentBlock.Count > 0)
+            
+            if(currentBlock.Count > 0)
             {
                 pages = pages.Take(currentBlock.Count);
             }

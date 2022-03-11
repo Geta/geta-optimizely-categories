@@ -1,6 +1,6 @@
 using EPiServer.Core;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     public interface IHasRelatedContent
     {

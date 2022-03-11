@@ -1,17 +1,17 @@
-using AlloyMvcTemplates.Business;
-using AlloyMvcTemplates.Models.Pages;
-using AlloyMvcTemplates.Models.ViewModels;
-using EPiServer;
+using System.Linq;
 using EPiServer.Core;
 using EPiServer.Framework.DataAnnotations;
 using EPiServer.Framework.Web;
-using EPiServer.Framework.Web.Mvc;
+using AlloyTemplates.Business;
+using AlloyTemplates.Models.Pages;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer.Web;
 using EPiServer.Web.Mvc;
+using EPiServer;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
+using EPiServer.Framework.Web.Mvc;
 
-namespace AlloyMvcTemplates.Controllers
+namespace AlloyTemplates.Controllers
 {
     /* Note: as the content area rendering on Alloy is customized we create ContentArea instances
      * which we render in the preview view in order to provide editors with a preview which is as
@@ -58,12 +58,12 @@ namespace AlloyMvcTemplates.Controllers
                         ContentLink = currentContent.ContentLink
                     });
                     var areaModel = new PreviewModel.PreviewArea
-                    {
-                        Supported = displayOption.Supported,
-                        AreaTag = displayOption.Tag,
-                        AreaName = displayOption.Name,
-                        ContentArea = contentArea
-                    };
+                        {
+                            Supported = displayOption.Supported,
+                            AreaTag = displayOption.Tag,
+                            AreaName = displayOption.Name,
+                            ContentArea = contentArea
+                        };
                     model.Areas.Add(areaModel);
                 }
             }

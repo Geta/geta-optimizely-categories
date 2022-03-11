@@ -1,18 +1,18 @@
-using AlloyMvcTemplates.Models.Pages;
-using AlloyMvcTemplates.Models.ViewModels;
+using System;
 using EPiServer;
 using EPiServer.Framework.DataAnnotations;
+using AlloyTemplates.Models.Pages;
+using AlloyTemplates.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using System;
 
-namespace AlloyMvcTemplates.Controllers
+namespace AlloyTemplates.Controllers
 {
     /// <summary>
     /// Concrete controller that handles all page types that don't have their own specific controllers.
     /// </summary>
     /// <remarks>
     /// Note that as the view file name is hard coded it won't work with DisplayModes (ie Index.mobile.cshtml).
-    /// For page types requiring such views add specific controllers for them. Alterntively the Index action 
+    /// For page types requiring such views add specific controllers for them. Alternatively the Index action 
     /// could be modified to set ControllerContext.RouteData.Values["controller"] to type name of the currentPage
     /// argument. That may however have side effects.
     /// </remarks>

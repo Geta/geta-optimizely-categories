@@ -1,6 +1,6 @@
-﻿using AlloyMvcTemplates.Business.Rendering;
+﻿using AlloyTemplates.Business.Rendering;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used to logically group pages in the page tree
@@ -11,6 +11,6 @@ namespace AlloyMvcTemplates.Models.Pages
     [SiteImageUrl]
     public class ContainerPage : SitePageData, IContainerPage
     {
-
+        
     }
 }

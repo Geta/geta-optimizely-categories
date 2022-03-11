@@ -1,22 +1,21 @@
-using AlloyMvcTemplates.Business;
-using EPiServer;
-using EPiServer.Core;
-using EPiServer.ServiceLocation;
-using EPiServer.Web.Mvc.Html;
-using EPiServer.Web.Routing;
-using Microsoft.AspNetCore.Html;
-using Microsoft.AspNetCore.Mvc.Razor;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using EPiServer.Core;
+using EPiServer.ServiceLocation;
+using AlloyTemplates.Business;
+using EPiServer.Web.Mvc.Html;
+using EPiServer;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Razor;
 using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Threading.Tasks;
+using EPiServer.Web.Routing;
 
-namespace AlloyMvcTemplates.Helpers
+namespace AlloyTemplates.Helpers
 {
     public static class HtmlHelpers
     {
@@ -58,7 +57,7 @@ namespace AlloyMvcTemplates.Helpers
                 .Select(x => CreateMenuItem(x, currentContentLink, pagePath, contentLoader, filter))
                 .ToList();
 
-            if (includeRoot)
+            if(includeRoot)
             {
                 menuItems.Insert(0, CreateMenuItem(contentLoader.Get<PageData>(rootLink), currentContentLink, pagePath, contentLoader, filter));
             }
@@ -76,12 +75,12 @@ namespace AlloyMvcTemplates.Helpers
         private static MenuItem CreateMenuItem(PageData page, ContentReference currentContentLink, List<ContentReference> pagePath, IContentLoader contentLoader, Func<IEnumerable<PageData>, IEnumerable<PageData>> filter)
         {
             var menuItem = new MenuItem(page)
-            {
-                Selected = page.ContentLink.CompareToIgnoreWorkID(currentContentLink) ||
+                {
+                    Selected = page.ContentLink.CompareToIgnoreWorkID(currentContentLink) ||
                                pagePath.Contains(page.ContentLink),
-                HasChildren =
+                    HasChildren =
                         new Lazy<bool>(() => filter(contentLoader.GetChildren<PageData>(page.ContentLink)).Any())
-            };
+                };
             return menuItem;
         }
 
@@ -112,12 +111,12 @@ namespace AlloyMvcTemplates.Helpers
         /// </summary>
         public static ConditionalLink BeginConditionalLink(this IHtmlHelper helper, bool shouldWriteLink, string url, string title = null, string cssClass = null)
         {
-            if (shouldWriteLink)
+            if(shouldWriteLink)
             {
                 var linkTag = new TagBuilder("a");
                 linkTag.Attributes.Add("href", url);
 
-                if (!string.IsNullOrWhiteSpace(title))
+                if(!string.IsNullOrWhiteSpace(title))
                 {
                     linkTag.Attributes.Add("title", title);
                 }
@@ -127,7 +126,7 @@ namespace AlloyMvcTemplates.Helpers
                     linkTag.Attributes.Add("class", cssClass);
                 }
 
-                linkTag.WriteTo(helper.ViewContext.Writer, HtmlEncoder.Default);
+                helper.ViewContext.Writer.Write(linkTag.RenderStartTag());
             }
             return new ConditionalLink(helper.ViewContext, shouldWriteLink);
         }
@@ -145,7 +144,7 @@ namespace AlloyMvcTemplates.Helpers
         {
             var url = string.Empty;
 
-            if (shouldWriteLink)
+            if(shouldWriteLink)
             {
                 url = urlGetter();
             }

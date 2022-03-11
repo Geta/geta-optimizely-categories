@@ -1,12 +1,12 @@
-using AlloyMvcTemplates.Controllers;
+using System;
+using AlloyTemplates.Controllers;
 using EPiServer.Web;
 using EPiServer.Web.Routing;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 
-namespace AlloyMvcTemplates.Helpers
+namespace AlloyTemplates.Helpers
 {
     /// <summary>
     /// Extension methods on request Context such as et/Set Node, Lang, Controller

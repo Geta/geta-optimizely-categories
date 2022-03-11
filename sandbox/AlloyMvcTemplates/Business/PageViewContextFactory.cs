@@ -1,5 +1,6 @@
-using AlloyMvcTemplates.Models.Pages;
-using AlloyMvcTemplates.Models.ViewModels;
+using System.Linq;
+using AlloyTemplates.Models.Pages;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Data;
@@ -11,9 +12,8 @@ using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using System.Linq;
 
-namespace AlloyMvcTemplates.Business
+namespace AlloyTemplates.Business
 {
     [ServiceConfiguration]
     public class PageViewContextFactory
@@ -63,7 +63,7 @@ namespace AlloyMvcTemplates.Business
         {
             return string.Format(
                 "{0}?ReturnUrl={1}",
-                _cookieAuthenticationOptions?.LoginPath.Value ?? VirtualPathResolver.Instance.ToAbsolute(Global.AppRelativeLoginPath),
+                _cookieAuthenticationOptions?.LoginPath.Value ?? Global.LoginPath,
                 _urlResolver.GetUrl(returnToContentLink));
         }
 

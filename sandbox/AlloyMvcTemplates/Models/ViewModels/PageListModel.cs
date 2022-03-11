@@ -1,8 +1,8 @@
-﻿using AlloyMvcTemplates.Models.Blocks;
+﻿using System.Collections.Generic;
 using EPiServer.Core;
-using System.Collections.Generic;
+using AlloyTemplates.Models.Blocks;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class PageListModel
     {

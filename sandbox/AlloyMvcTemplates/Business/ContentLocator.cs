@@ -1,16 +1,16 @@
-﻿using AlloyMvcTemplates.Models.Pages;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using AlloyTemplates.Models.Pages;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell.Configuration;
 using EPiServer.Web;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 
-namespace AlloyMvcTemplates.Business
+namespace AlloyTemplates.Business
 {
     [ServiceConfiguration(Lifecycle = ServiceInstanceScope.Singleton)]
     public class ContentLocator

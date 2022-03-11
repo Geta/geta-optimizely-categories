@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates
+namespace AlloyTemplates
 {
+
     public class Global
     {
-        public static readonly string LoginPath = "/util/login.aspx";
-        public static readonly string AppRelativeLoginPath = string.Format("~{0}", LoginPath);
+        public const string LoginPath = "/util/login";
 
         /// <summary>
         /// Group names for content types and properties

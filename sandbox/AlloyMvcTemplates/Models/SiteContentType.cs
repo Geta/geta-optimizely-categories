@@ -1,6 +1,6 @@
 ﻿using EPiServer.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models
+namespace AlloyTemplates.Models
 {
     /// <summary>
     /// Attribute used for site content types to set default attribute values

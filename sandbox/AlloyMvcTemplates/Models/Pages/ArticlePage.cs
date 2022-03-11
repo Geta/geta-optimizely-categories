@@ -1,5 +1,4 @@
-﻿
-namespace AlloyMvcTemplates.Models.Pages
+﻿namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used primarily for publishing news articles on the website

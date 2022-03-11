@@ -1,21 +1,27 @@
-﻿using EPiServer.ServiceLocation;
-using EPiServer.Shell.ObjectEditing;
 using System.Collections.Generic;
 using System.Linq;
+using EPiServer.ServiceLocation;
+using EPiServer.Shell.ObjectEditing;
 
-namespace AlloyMvcTemplates.Business.EditorDescriptors
+namespace AlloyTemplates.Business.EditorDescriptors
 {
     /// <summary>
     /// Provides a list of options corresponding to ContactPage pages on the site
     /// </summary>
     /// <seealso cref="ContactPageSelector"/>
+    [ServiceConfiguration]
     public class ContactPageSelectionFactory : ISelectionFactory
     {
-        private Injected<ContentLocator> ContentLocator { get; set; }
+        private readonly ContentLocator _contentLocator;
+
+        public ContactPageSelectionFactory(ContentLocator contentLocator)
+        {
+            _contentLocator = contentLocator;
+        }
 
         public IEnumerable<ISelectItem> GetSelections(ExtendedMetadata metadata)
         {
-            var contactPages = ContentLocator.Service.GetContactPages();
+            var contactPages = _contentLocator.GetContactPages();
 
             return new List<SelectItem>(contactPages.Select(c => new SelectItem { Value = c.PageLink, Text = c.Name }));
         }

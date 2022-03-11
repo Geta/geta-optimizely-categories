@@ -3,11 +3,11 @@ using EPiServer.DataAnnotations;
 using EPiServer.Framework.DataAnnotations;
 using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Media
+namespace AlloyTemplates.Models.Media
 {
     [ContentType(GUID = "0A89E464-56D4-449F-AEA8-2BF774AB8730")]
     [MediaDescriptor(ExtensionString = "jpg,jpeg,jpe,ico,gif,bmp,png")]
-    public class ImageFile : ImageData
+    public class ImageFile : ImageData 
     {
         /// <summary>
         /// Gets or sets the copyright.

@@ -1,11 +1,11 @@
-﻿using EPiServer;
+﻿using System.ComponentModel.DataAnnotations;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
 using EPiServer.Web;
-using System.ComponentModel.DataAnnotations;
+using EPiServer;
 
-namespace AlloyMvcTemplates.Models.Blocks
+namespace AlloyTemplates.Models.Blocks
 {
     /// <summary>
     /// Used to present contact information with a call-to-action link

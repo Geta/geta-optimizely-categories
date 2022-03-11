@@ -1,10 +1,10 @@
-﻿using AlloyMvcTemplates.Models.Blocks;
+﻿using System.ComponentModel.DataAnnotations;
+using AlloyTemplates.Models.Blocks;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used to provide on-site search

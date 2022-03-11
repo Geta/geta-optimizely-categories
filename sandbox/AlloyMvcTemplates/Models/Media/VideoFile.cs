@@ -1,10 +1,10 @@
-﻿using EPiServer.Core;
+﻿using System.ComponentModel.DataAnnotations;
+using EPiServer.Core;
 using EPiServer.DataAnnotations;
 using EPiServer.Framework.DataAnnotations;
 using EPiServer.Web;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Media
+namespace AlloyTemplates.Models.Media
 {
     [ContentType(GUID = "85468104-E06F-47E5-A317-FC9B83D3CBA6")]
     [MediaDescriptor(ExtensionString = "flv,mp4,webm")]
@@ -20,5 +20,5 @@ namespace AlloyMvcTemplates.Models.Media
         /// </summary>
         [UIHint(UIHint.Image)]
         public virtual ContentReference PreviewImage { get; set; }
-    }
+   }
 }

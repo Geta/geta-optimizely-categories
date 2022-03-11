@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models
+namespace AlloyTemplates.Models
 {
     public class RegisterViewModel
     {
         [Required]
         [Display(Name = "Username")]
         [RegularExpression(@"^[a-zA-Z0-9_-]+$", ErrorMessage = "Username can only contain letters a-z, numbers, underscores and hyphens.")]
-        [StringLength(20, ErrorMessage = "The {0} field can not be more than {1} characters long.")]
+        [StringLength(20, ErrorMessage ="The {0} field can not be more than {1} characters long.")]
         public string Username { get; set; }
 
         [Required]

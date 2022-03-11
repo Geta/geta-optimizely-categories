@@ -1,8 +1,8 @@
-﻿using AlloyMvcTemplates.Models.Pages;
+﻿using System;
 using EPiServer.Core;
-using System;
+using AlloyTemplates.Models.Pages;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class PageViewModel<T> : IPageViewModel<T> where T : SitePageData
     {

@@ -1,6 +1,7 @@
-﻿using AlloyMvcTemplates.Business;
-using AlloyMvcTemplates.Business.Channels;
 using AlloyMvcTemplates.Business.Rendering;
+using AlloyTemplates;
+using AlloyTemplates.Business;
+using AlloyTemplates.Business.Channels;
 using EPiServer.Authorization;
 using EPiServer.Cms.Shell.UI.Approvals.Notifications;
 using EPiServer.DependencyInjection;
@@ -24,9 +25,9 @@ namespace AlloyMvcTemplates.Extensions
 
             services.Configure<DisplayOptions>(displayOption =>
             {
-                displayOption.Add("full", "/displayoptions/full", Global.ContentAreaTags.FullWidth, "", "epi-icon__layout--full");
-                displayOption.Add("wide", "/displayoptions/wide", Global.ContentAreaTags.TwoThirdsWidth, "", "epi-icon__layout--two-thirds");
-                displayOption.Add("narrow", "/displayoptions/narrow", Global.ContentAreaTags.OneThirdWidth, "", "epi-icon__layout--one-third");
+               displayOption.Add("full", "/displayoptions/full", Global.ContentAreaTags.FullWidth, "", "epi-icon__layout--full");
+               displayOption.Add("wide", "/displayoptions/wide", Global.ContentAreaTags.TwoThirdsWidth, "", "epi-icon__layout--two-thirds");
+               displayOption.Add("narrow", "/displayoptions/narrow", Global.ContentAreaTags.OneThirdWidth, "", "epi-icon__layout--one-third");
             });
 
             services.Configure<MvcOptions>(options =>

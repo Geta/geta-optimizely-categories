@@ -1,21 +1,19 @@
-﻿using AlloyMvcTemplates.Extensions;
+using AlloyMvcTemplates.Extensions;
 using AlloyMvcTemplates.Infrastructure;
 using EPiServer.Cms.UI.AspNetIdentity;
 using EPiServer.Data;
-using EPiServer.DependencyInjection;
+using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
-using EPiServer.Web.Internal;
 using EPiServer.Web.Routing;
+using Geta.Optimizely.Categories.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
-using EPiServer.Framework.Web.Resources;
-using Geta.Optimizely.Categories.Configuration;
 
-namespace AlloyMvcTemplates
+namespace EPiServer.Templates.Alloy.Mvc
 {
     public class Startup
     {
@@ -30,47 +28,33 @@ namespace AlloyMvcTemplates
 
         public void ConfigureServices(IServiceCollection services)
         {
-            var dbPath = Path.Combine(_webHostingEnvironment.ContentRootPath, "App_Data\\Alloy.mdf");
-            var connectionstring = _configuration.GetConnectionString("EPiServerDB") ?? $"Data Source=(LocalDb)\\MSSQLLocalDB;AttachDbFilename={dbPath};Initial Catalog=alloy_mvc_netcore;Integrated Security=True;Connect Timeout=30;MultipleActiveResultSets=True";
-
-            services.Configure<DataAccessOptions>(o =>
+            if (_webHostingEnvironment.IsDevelopment())
             {
-                o.SetConnectionString(connectionstring);
-            });
-
-            services.AddCmsAspNetIdentity<ApplicationUser>(o =>
-            {
-                if (string.IsNullOrEmpty(o.ConnectionStringOptions?.ConnectionString))
+                services.Configure<SchedulerOptions>(o =>
                 {
-                    o.ConnectionStringOptions = new ConnectionStringOptions()
-                    {
-                        ConnectionString = connectionstring
-                    };
-                }
-            });
+                    o.Enabled = false;
+                });
 
-            services.AddMvc();
-            services.AddCms();
-            services.AddAlloy();
+                services.PostConfigure<DataAccessOptions>(o =>
+                {
+                    o.SetConnectionString(_configuration.GetConnectionString("EPiServerDB").Replace("App_Data", Path.GetFullPath("App_Data")));
+                });
+                services.PostConfigure<ApplicationOptions>(o =>
+                {
+                    o.ConnectionStringOptions.ConnectionString = _configuration.GetConnectionString("EPiServerDB").Replace("App_Data", Path.GetFullPath("App_Data"));
+                });
+            }
 
             services.AddCategories();
 
-            services.Configure<UIOptions>(uiOptions =>
-            {
-                uiOptions.UIShowGlobalizationUserInterface = true;
-            });
-
-            services.Configure<ClientResourceOptions>(options =>
-            {
-                options.Debug = true;
-                options.Compress = false;
-            });
+            services.AddCmsAspNetIdentity<ApplicationUser>();
+            services.AddMvc();
+            services.AddAlloy();
+            services.AddCms();
 
             services.AddEmbeddedLocalization<Startup>();
         }
 
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())

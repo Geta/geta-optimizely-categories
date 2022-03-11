@@ -1,15 +1,15 @@
-﻿using EPiServer;
+﻿using System;
+using EPiServer;
 using EPiServer.Core;
-using System;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class ContentRenderingErrorModel
     {
         public ContentRenderingErrorModel(IContentData contentData, Exception exception)
         {
             var content = contentData as IContent;
-            if (content != null)
+            if(content != null)
             {
                 ContentName = content.Name;
             }

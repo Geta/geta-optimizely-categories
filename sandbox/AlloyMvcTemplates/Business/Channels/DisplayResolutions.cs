@@ -1,12 +1,13 @@
-﻿
-namespace AlloyMvcTemplates.Business.Channels
+using EPiServer.Framework.Localization;
+
+namespace AlloyTemplates.Business.Channels
 {
     /// <summary>
     /// Defines resolution for desktop displays
     /// </summary>
     public class StandardResolution : DisplayResolutionBase
     {
-        public StandardResolution() : base("/resolutions/standard", 1366, 768)
+        public StandardResolution(LocalizationService localizationService) : base(localizationService, "/resolutions/standard", 1366, 768)
         {
         }
     }
@@ -16,7 +17,7 @@ namespace AlloyMvcTemplates.Business.Channels
     /// </summary>
     public class IpadHorizontalResolution : DisplayResolutionBase
     {
-        public IpadHorizontalResolution() : base("/resolutions/ipadhorizontal", 1024, 768)
+        public IpadHorizontalResolution(LocalizationService localizationService) : base(localizationService, "/resolutions/ipadhorizontal", 1024, 768)
         {
         }
     }
@@ -26,7 +27,7 @@ namespace AlloyMvcTemplates.Business.Channels
     /// </summary>
     public class IphoneVerticalResolution : DisplayResolutionBase
     {
-        public IphoneVerticalResolution() : base("/resolutions/iphonevertical", 320, 568)
+        public IphoneVerticalResolution(LocalizationService localizationService) : base(localizationService, "/resolutions/iphonevertical", 320, 568)
         {
         }
     }
@@ -36,7 +37,7 @@ namespace AlloyMvcTemplates.Business.Channels
     /// </summary>
     public class AndroidVerticalResolution : DisplayResolutionBase
     {
-        public AndroidVerticalResolution() : base("/resolutions/androidvertical", 480, 800)
+        public AndroidVerticalResolution(LocalizationService localizationService) : base(localizationService, "/resolutions/androidvertical", 480, 800)
         {
         }
     }

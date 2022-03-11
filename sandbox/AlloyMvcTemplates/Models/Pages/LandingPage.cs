@@ -1,9 +1,9 @@
-﻿using EPiServer.Core;
+﻿using System.ComponentModel.DataAnnotations;
+using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used for campaign or landing pages, commonly used for pages linked in online advertising such as AdWords
@@ -16,7 +16,7 @@ namespace AlloyMvcTemplates.Models.Pages
     {
         [Display(
             GroupName = SystemTabNames.Content,
-            Order = 310)]
+            Order=310)]
         [CultureSpecific]
         public virtual ContentArea MainContentArea { get; set; }
 

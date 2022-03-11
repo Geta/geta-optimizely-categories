@@ -1,13 +1,13 @@
-﻿using AlloyMvcTemplates.Business.Rendering;
-using EPiServer.Framework;
+﻿using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
+using AlloyTemplates.Business.Rendering;
 using EPiServer.Web;
 using EPiServer.Web.Mvc;
-using EPiServer.Web.Mvc.Html;
 using Microsoft.Extensions.DependencyInjection;
+using EPiServer.Web.Mvc.Html;
 
-namespace AlloyMvcTemplates.Business.Initialization
+namespace AlloyTemplates.Business.Initialization
 {
     /// <summary>
     /// Module for customizing templates and rendering.
@@ -30,6 +30,6 @@ namespace AlloyMvcTemplates.Business.Initialization
 
         public void Uninitialize(InitializationEngine context) => context.Locate.Advanced.GetInstance<ITemplateResolverEvents>().TemplateResolved -= TemplateCoordinator.OnTemplateResolved;
 
-        public void Preload(string[] parameters) { }
+        public void Preload(string[] parameters){}
     }
 }

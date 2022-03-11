@@ -1,5 +1,5 @@
 ﻿
-namespace AlloyMvcTemplates.Models.Blocks
+namespace AlloyTemplates.Models.Blocks
 {
     /// <summary>
     /// Base class for all block types on the site

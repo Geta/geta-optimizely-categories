@@ -1,9 +1,9 @@
-﻿using EPiServer.Core;
+﻿using System.ComponentModel.DataAnnotations;
+using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Blocks
+namespace AlloyTemplates.Models.Blocks
 {
     /// <summary>
     /// Used to insert editorial content edited using a rich-text editor

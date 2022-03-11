@@ -1,7 +1,7 @@
-﻿using AlloyMvcTemplates.Models.Pages;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using AlloyTemplates.Models.Pages;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class SearchContentModel : PageViewModel<SearchPage>
     {

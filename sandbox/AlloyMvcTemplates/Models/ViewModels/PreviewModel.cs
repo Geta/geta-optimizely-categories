@@ -1,8 +1,8 @@
-﻿using AlloyMvcTemplates.Models.Pages;
+﻿using System.Collections.Generic;
 using EPiServer.Core;
-using System.Collections.Generic;
+using AlloyTemplates.Models.Pages;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class PreviewModel : PageViewModel<SitePageData>
     {
@@ -14,7 +14,7 @@ namespace AlloyMvcTemplates.Models.ViewModels
         }
 
         public IContent PreviewContent { get; set; }
-        public List<PreviewArea> Areas { get; set; }
+        public List<PreviewArea> Areas { get; set; } 
 
         public class PreviewArea
         {

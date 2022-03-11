@@ -1,10 +1,10 @@
-﻿using AlloyMvcTemplates.Models.Pages;
-using EPiServer.Core;
+﻿using System.ComponentModel.DataAnnotations;
+using AlloyTemplates.Models.Pages;
 using EPiServer.Web;
+using EPiServer.Core;
 using Microsoft.AspNetCore.Html;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.ViewModels
+namespace AlloyTemplates.Models.ViewModels
 {
     public class ContactBlockModel
     {

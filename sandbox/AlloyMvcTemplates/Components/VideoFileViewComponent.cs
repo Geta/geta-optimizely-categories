@@ -1,12 +1,12 @@
-using AlloyMvcTemplates.Models.Media;
-using AlloyMvcTemplates.Models.ViewModels;
+using AlloyTemplates.Models.Media;
+using AlloyTemplates.Models.ViewModels;
 using EPiServer.Core;
 using EPiServer.Web.Mvc;
 using EPiServer.Web.Routing;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
-namespace AlloyMvcTemplates.Controllers
+namespace AlloyTemplates.Controllers
 {
     /// <summary>
     /// Controller for the video file.
@@ -24,7 +24,7 @@ namespace AlloyMvcTemplates.Controllers
         /// The index action for the video file. Creates the view model and renders the view.
         /// </summary>
         /// <param name="currentContent">The current video file.</param>
-        public override IViewComponentResult Invoke(VideoFile currentContent)
+        protected override IViewComponentResult InvokeComponent(VideoFile currentContent)
         {
             var model = new VideoViewModel
             {

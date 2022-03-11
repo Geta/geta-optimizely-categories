@@ -1,11 +1,11 @@
-using AlloyMvcTemplates.Models.Blocks;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using AlloyTemplates.Models.Blocks;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used to present a single product
@@ -29,7 +29,7 @@ namespace AlloyMvcTemplates.Models.Pages
             GroupName = SystemTabNames.Content,
             Order = 330)]
         [CultureSpecific]
-        [AllowedTypes(new[] { typeof(IContentData) }, new[] { typeof(JumbotronBlock) })]
+        [AllowedTypes(new[] { typeof(IContentData) },new[] { typeof(JumbotronBlock) })]
         public virtual ContentArea RelatedContentArea { get; set; }
     }
 }

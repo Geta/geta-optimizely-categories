@@ -1,9 +1,9 @@
-﻿using AlloyMvcTemplates.Business.Rendering;
-using EPiServer.Core;
+﻿using System.ComponentModel.DataAnnotations;
+using AlloyTemplates.Business.Rendering;
 using EPiServer.Web;
-using System.ComponentModel.DataAnnotations;
+using EPiServer.Core;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Represents contact details for a contact person
@@ -20,7 +20,7 @@ namespace AlloyMvcTemplates.Models.Pages
 
         [Display(GroupName = Global.GroupNames.Contact)]
         public virtual string Phone { get; set; }
-
+        
         [Display(GroupName = Global.GroupNames.Contact)]
         [EmailAddress]
         public virtual string Email { get; set; }

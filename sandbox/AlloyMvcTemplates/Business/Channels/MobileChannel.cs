@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Wangkanai.Detection;
 
-namespace AlloyMvcTemplates.Business.Channels
+namespace AlloyTemplates.Business.Channels
 {
     //<summary>
     //Defines the 'Mobile' content channel
@@ -34,5 +34,5 @@ namespace AlloyMvcTemplates.Business.Channels
             var detection = context.RequestServices.GetRequiredService<IDetection>();
             return detection.Device.Type == DeviceType.Mobile;
         }
-    }
+}
 }

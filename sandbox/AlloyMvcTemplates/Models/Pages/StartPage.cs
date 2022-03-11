@@ -1,11 +1,11 @@
-﻿using AlloyMvcTemplates.Models.Blocks;
+﻿using System.ComponentModel.DataAnnotations;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
 using EPiServer.SpecializedProperties;
-using System.ComponentModel.DataAnnotations;
+using AlloyTemplates.Models.Blocks;
 
-namespace AlloyMvcTemplates.Models.Pages
+namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Used for the site's start page and also acts as a container for site settings
@@ -49,6 +49,5 @@ namespace AlloyMvcTemplates.Models.Pages
 
         [Display(GroupName = Global.GroupNames.SiteSettings)]
         public virtual SiteLogotypeBlock SiteLogotype { get; set; }
-
     }
 }

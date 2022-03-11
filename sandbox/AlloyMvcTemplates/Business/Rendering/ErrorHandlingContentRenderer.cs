@@ -1,18 +1,19 @@
-using AlloyMvcTemplates.Helpers;
-using AlloyMvcTemplates.Models.ViewModels;
+using System;
+using System.IO;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.Security;
-using EPiServer.Web;
-using EPiServer.Web.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace AlloyMvcTemplates.Business.Rendering
+using AlloyTemplates.Models.ViewModels;
+using EPiServer.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Threading.Tasks;
+using EPiServer.Web;
+using AlloyTemplates.Helpers;
+
+namespace AlloyTemplates.Business.Rendering
 {
     /// <summary>
     /// Wraps an MvcContentRenderer and adds error handling to ensure that blocks and other content

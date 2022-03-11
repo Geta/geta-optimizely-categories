@@ -1,11 +1,11 @@
-﻿using EPiServer.Core;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
 using EPiServer.Filters;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 
-namespace AlloyMvcTemplates.Models.Blocks
+namespace AlloyTemplates.Models.Blocks
 {
     /// <summary>
     /// Used to insert a list of pages, for example a news list
@@ -59,7 +59,7 @@ namespace AlloyMvcTemplates.Models.Blocks
         [Display(
             GroupName = SystemTabNames.Content,
             Order = 6)]
-        public virtual PageType PageTypeFilter { get; set; }
+        public virtual PageType PageTypeFilter{get; set;}
 
         [Display(
             GroupName = SystemTabNames.Content,

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace AlloyMvcTemplates.Extensions
+namespace EPiServer.Templates.Alloy.Mvc.Extensions
 {
     public static class HttpContextExtensions
     {
