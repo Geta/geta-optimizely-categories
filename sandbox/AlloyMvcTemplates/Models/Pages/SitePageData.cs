@@ -89,6 +89,9 @@ namespace AlloyTemplates.Models.Pages
         [CultureSpecific]
         public virtual bool HideSiteFooter { get; set; }
 
+        [Categories]
+        public virtual IList<ContentReference> Categories { get; set; }
+
         public string ContentAreaCssClass
         {
             get { return "teaserblock"; } //Page partials should be style like teasers
