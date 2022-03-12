@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web.Mvc;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 
 namespace Geta.Optimizely.Categories.DataAnnotations
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public class CategoriesAttribute : Attribute //, IMetadataAware
+    public class CategoriesAttribute : Attribute, IDisplayMetadataProvider
     {
-        /*private readonly CategorySettings _categorySettings;
+        private readonly CategorySettings _categorySettings;
         private readonly IEnumerable<IContentRepositoryDescriptor> _contentRepositoryDescriptors;
 
         public CategoriesAttribute() : this(ServiceLocator.Current.GetInstance<IEnumerable<IContentRepositoryDescriptor>>(), ServiceLocator.Current.GetInstance<CategorySettings>())
@@ -24,25 +26,21 @@ namespace Geta.Optimizely.Categories.DataAnnotations
             _categorySettings = categorySettings;
         }
 
-        public void OnMetadataCreated(ModelMetadata metadata)
+        public void CreateDisplayMetadata(DisplayMetadataProviderContext context)
         {
-            var extendedMetadata = metadata as ExtendedMetadata;
-
-            if (extendedMetadata == null)
-            {
+            if (context.DisplayMetadata.AdditionalValues[ExtendedMetadata.ExtendedMetadataDisplayKey] is not ExtendedMetadata additionalValue)
                 return;
-            }
 
-            var allowedTypes = new[] {typeof (CategoryData)};
+            var allowedTypes = new[] { typeof(CategoryData) };
             var categoryRepositoryDescriptor = _contentRepositoryDescriptors.First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
-            extendedMetadata.ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
-            extendedMetadata.EditorConfiguration["AllowedTypes"] = allowedTypes;
-            extendedMetadata.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
-            extendedMetadata.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
-            extendedMetadata.EditorConfiguration["categorySettings"] = _categorySettings;
-            extendedMetadata.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
-            extendedMetadata.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
-            extendedMetadata.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
-        }*/
+            additionalValue.ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
+            additionalValue.EditorConfiguration["AllowedTypes"] = allowedTypes;
+            additionalValue.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
+            additionalValue.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
+            additionalValue.EditorConfiguration["categorySettings"] = _categorySettings;
+            additionalValue.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
+            additionalValue.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
+            additionalValue.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
+        }
     }
 }
