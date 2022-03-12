@@ -51,7 +51,6 @@ namespace Geta.Optimizely.Categories.Configuration
 
         private static void AddModule(IServiceCollection services)
         {
-            services.AddCmsUI();
             services.Configure<ProtectedModuleOptions>(
                 pm =>
                 {

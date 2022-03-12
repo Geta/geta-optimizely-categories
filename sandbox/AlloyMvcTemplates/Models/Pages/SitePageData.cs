@@ -6,6 +6,7 @@ using AlloyTemplates.Business.Rendering;
 using EPiServer.Web;
 using EPiServer.SpecializedProperties;
 using System.Collections.Generic;
+using Geta.Optimizely.Categories.DataAnnotations;
 
 namespace AlloyTemplates.Models.Pages
 {
