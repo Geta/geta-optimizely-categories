@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 namespace Geta.Optimizely.Categories.Routing
 {
@@ -10,8 +10,7 @@ namespace Geta.Optimizely.Categories.Routing
         {
             if (IsCategoryList(context))
             {
-                var categoryContentLoader = context.Services.GetRequiredService<ICategoryContentLoader>();
-                return new CategoryModelBinder(categoryContentLoader);
+                return new BinderTypeModelBinder(typeof(CategoryModelBinder));
             }
 
             return null;
