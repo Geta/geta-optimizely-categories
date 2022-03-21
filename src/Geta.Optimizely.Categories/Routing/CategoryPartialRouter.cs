@@ -53,11 +53,18 @@ namespace Geta.Optimizely.Categories.Routing
                 var localizableContent = content as ILocale;
                 var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
 
-                var categories = nextSegment.Next.Split(new [] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
+                var categoryUrlSegments = nextSegment.Next.Split(new [] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
+                // Verify that all categories exist
+                foreach (var categoryUrlSegment in categoryUrlSegments)
+                {
+                    var category = CategoryLoader.GetFirstBySegment<CategoryData>(categoryUrlSegment, preferredCulture);
+                    if (category == null)
+                        return null;
+                }
 
                 segmentContext.RemainingPath = thisSegment.Substring(0, thisSegment.LastIndexOf(nextSegment.Next, StringComparison.InvariantCultureIgnoreCase));
 
-                HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categories);
+                HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryUrlSegments);
 
                 return content;
             }
