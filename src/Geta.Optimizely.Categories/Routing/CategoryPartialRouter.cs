@@ -59,7 +59,9 @@ namespace Geta.Optimizely.Categories.Routing
                 {
                     var category = CategoryLoader.GetFirstBySegment<CategoryData>(categoryUrlSegment, preferredCulture);
                     if (category == null)
+                    {
                         return null;
+                    }
                 }
 
                 segmentContext.RemainingPath = thisSegment.Substring(0, thisSegment.LastIndexOf(nextSegment.Next, StringComparison.InvariantCultureIgnoreCase));
