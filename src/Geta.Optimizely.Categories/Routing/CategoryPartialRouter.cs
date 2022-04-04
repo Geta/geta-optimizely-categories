@@ -88,30 +88,6 @@ namespace Geta.Optimizely.Categories.Routing
 
             var routeValues = urlGeneratorContext.RouteValues;
 
-            // Single category
-            object currentCategory;
-            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out currentCategory))
-            {
-                ContentReference categoryLink = currentCategory as ContentReference;
-
-                if (ContentReference.IsNullOrEmpty(categoryLink))
-                    return null;
-
-                CategoryData category;
-
-                if (CategoryLoader.TryGet(categoryLink, out category) == false)
-                    return null;
-
-                // Remove from query now that it's handled.
-                routeValues.Remove(CategoryRoutingConstants.CurrentCategory);
-
-                return new PartialRouteData
-                {
-                    BasePathRoot = content.ContentLink,
-                    PartialVirtualPath = $"{category.RouteSegment}/"
-                };
-            }
-
             // Multiple categories
             object currentCategories;
             if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out currentCategories))
