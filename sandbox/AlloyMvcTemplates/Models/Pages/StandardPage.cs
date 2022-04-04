@@ -1,7 +1,6 @@
 ﻿﻿using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
-using Geta.Optimizely.Categories;
 using System.ComponentModel.DataAnnotations;
 
 namespace AlloyTemplates.Models.Pages
@@ -11,7 +10,7 @@ namespace AlloyTemplates.Models.Pages
     /// </summary>
     [SiteContentType(GUID = "9CCC8A41-5C8C-4BE0-8E73-520FF3DE8267")]
     [SiteImageUrl(Global.StaticGraphicsFolderPath + "page-type-thumbnail-standard.png")]
-    public class StandardPage : SitePageData, ICategoryRoutableContent
+    public class StandardPage : SitePageData
     {
         [Display(
             GroupName = SystemTabNames.Content,

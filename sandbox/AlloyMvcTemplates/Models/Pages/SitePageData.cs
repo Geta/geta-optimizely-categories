@@ -7,13 +7,14 @@ using EPiServer.Web;
 using EPiServer.SpecializedProperties;
 using System.Collections.Generic;
 using Geta.Optimizely.Categories.DataAnnotations;
+using Geta.Optimizely.Categories;
 
 namespace AlloyTemplates.Models.Pages
 {
     /// <summary>
     /// Base class for all page types
     /// </summary>
-    public abstract class SitePageData : PageData, ICustomCssInContentArea
+    public abstract class SitePageData : PageData, ICustomCssInContentArea, ICategorizableContent
     {
         [Display(
             GroupName = Global.GroupNames.MetaData,
