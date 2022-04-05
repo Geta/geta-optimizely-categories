@@ -110,6 +110,9 @@ function (
         },
 
         onNewCategoryCreated: function (category) {
+            if (!this.dialog) {
+                this._createDialog();
+            }
             this.dialog.show(true);
             this.categorySelectorDialog.appendValue(category.contentLink);
             this._preventSetDialogValueOnShow = false;
@@ -271,6 +274,7 @@ function (
 
         _onDialogHide: function () {
             this.focus();
+            this.dialog = null;
             this.isShowingChildDialog = false;
         },
 
@@ -292,7 +296,7 @@ function (
             this.dialog = new Dialog({
                 title: this.localization.popuptitle,
                 content: this.categorySelectorDialog,
-                destroyOnHide: false,
+                destroyOnHide: true,
                 dialogClass: "epi-dialog-portrait"
             });
 
