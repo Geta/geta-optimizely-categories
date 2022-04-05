@@ -19,8 +19,12 @@ namespace Geta.Optimizely.Categories.Extensions
         {
             return urlResolver.GetUrl(contentLink, null, new UrlResolverArguments
             {
-                RouteValues = new RouteValueDictionary { 
-                    { CategoryRoutingConstants.CurrentCategories, new CategoryLinkCollection(categoryContentLinks) }
+                RouteValues = new RouteValueDictionary
+                { 
+                    {
+                        CategoryRoutingConstants.CurrentCategories,
+                        new CategoryLinkCollection(categoryContentLinks)
+                    }
                 }
             });
         }
