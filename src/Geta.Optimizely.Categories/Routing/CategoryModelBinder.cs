@@ -14,7 +14,6 @@ namespace Geta.Optimizely.Categories.Routing
 
         public CategoryModelBinder(
             ICategoryContentLoader categoryContentLoader,
-            IPageRouteHelper pageRouteHelper,
             IPageRouteHelper pageRouteHelper)
         {
             _categoryContentLoader = categoryContentLoader;
