@@ -31,9 +31,9 @@ namespace AlloyTemplates.Controllers
                 .GetChildren<SitePageData>(currentPage.ContentLink);
             if (currentCategories != null && currentCategories.Any())
             {
-                // Filter out content using categories
-                children = children.Where(x => currentCategories.Select(x => x.ContentLink)
-                                                                .Intersect(x.Categories ?? Enumerable.Empty<ContentReference>())
+                // Filter out content using current categories
+                var currentCategoryLinks = currentCategories.Select(currentCat => currentCat.ContentLink);
+                children = children.Where(x => currentCategoryLinks.Intersect(x.Categories ?? Enumerable.Empty<ContentReference>())
                                                                 .Any());
             }
             return View(new TestCategoriesModel(currentPage, siteCategories, currentCategories, children));
