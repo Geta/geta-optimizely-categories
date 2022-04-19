@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using EPiServer.Core;
 using EPiServer.Globalization;
 using EPiServer.Web.Routing;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Geta.Optimizely.Categories.Routing
@@ -22,24 +24,23 @@ namespace Geta.Optimizely.Categories.Routing
 
         public Task BindModelAsync(ModelBindingContext bindingContext)
         {
-            var categorySegments =
-                (string[]) bindingContext.HttpContext.Request.RouteValues[CategoryRoutingConstants.CurrentCategories];
-            if (categorySegments == null) return Task.CompletedTask;
-
-            var culture = (_pageRouteHelper.Content as ILocale).Language ?? ContentLanguage.PreferredCulture;
-            var categories = new List<CategoryData>();
-            foreach (var categorySegment in categorySegments)
-            {
-                var category =
-                    _categoryContentLoader.GetFirstBySegment<CategoryData>(categorySegment, culture);
-                if (category == null) return Task.CompletedTask;
-
-                categories.Add(category);
-            }
-
+            var categories = GetCategoriesFromRequest(bindingContext.HttpContext.Request);
             bindingContext.Result = ModelBindingResult.Success(categories);
-
             return Task.CompletedTask;
+        }
+
+        private IList<CategoryData> GetCategoriesFromRequest(HttpRequest request)
+        {
+            var categorySegments = (string[])request.RouteValues[CategoryRoutingConstants.CurrentCategories];
+            if (categorySegments == null)
+            {
+                return new List<CategoryData>();
+            }
+            
+            var culture = (_pageRouteHelper.Content as ILocale).Language ?? ContentLanguage.PreferredCulture;
+
+            return categorySegments.Select(x => _categoryContentLoader.GetFirstBySegment<CategoryData>(x, culture))
+                                   .ToList();
         }
     }
 }

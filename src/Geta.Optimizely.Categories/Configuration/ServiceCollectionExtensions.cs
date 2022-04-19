@@ -31,8 +31,6 @@ namespace Geta.Optimizely.Categories.Configuration
             AddModule(services);
 
             services.AddSingleton<IPartialRouter, CategoryPartialRouter>();
-            services.AddSingleton<IContentRouteRegister, SharedCategoriesRouteRegister>();
-            services.AddSingleton<IContentRouteRegister, SiteCategoriesRouteRegister>();
             services.AddTransient<IContentRepositoryDescriptor, CategoryContentRepositoryDescriptor>();
 
             services.AddSingleton<IContentInCategoryLocator, DefaultContentInCategoryLocator>();

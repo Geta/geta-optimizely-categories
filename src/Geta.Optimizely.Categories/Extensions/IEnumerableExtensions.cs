@@ -4,7 +4,7 @@ using EPiServer.Core;
 
 namespace Geta.Optimizely.Categories.Extensions
 {
-    public static class EnumerableExtensions
+    internal static class EnumerableExtensions
     {
         public static bool MemberOf(this IEnumerable<ContentReference> contentLinks, ContentReference contentReference)
         {

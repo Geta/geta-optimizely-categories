@@ -11,10 +11,7 @@ namespace Geta.Optimizely.Categories.Extensions
         public static string GetCategoryRoutedUrl(
             this IUrlResolver urlResolver, ContentReference contentLink, ContentReference categoryContentLink)
         {
-            return urlResolver.GetUrl(contentLink, null, new UrlResolverArguments
-            {
-                RouteValues = new RouteValueDictionary {{CategoryRoutingConstants.CurrentCategory, categoryContentLink}}
-            });
+            return urlResolver.GetCategoryRoutedUrl(contentLink, new[] { categoryContentLink });
         }
 
         public static string GetCategoryRoutedUrl(
@@ -23,7 +20,12 @@ namespace Geta.Optimizely.Categories.Extensions
             return urlResolver.GetUrl(contentLink, null, new UrlResolverArguments
             {
                 RouteValues = new RouteValueDictionary
-                    {{CategoryRoutingConstants.CurrentCategory, categoryContentLinks}}
+                { 
+                    {
+                        CategoryRoutingConstants.CurrentCategories,
+                        new CategoryLinkCollection(categoryContentLinks)
+                    }
+                }
             });
         }
     }

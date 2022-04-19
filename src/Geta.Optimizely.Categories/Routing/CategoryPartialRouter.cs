@@ -7,6 +7,7 @@ using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
 using EPiServer.Web;
 using Geta.Optimizely.Categories.Configuration;
+using Geta.Optimizely.Categories.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -38,17 +39,20 @@ namespace Geta.Optimizely.Categories.Routing
 
         public object RoutePartial(ICategoryRoutableContent content, UrlResolverContext segmentContext)
         {
-            if (CategoriesResolved()) return null;
+            if (CategoriesResolved())
+            {
+                return null;
+            }
 
             var thisSegment = segmentContext.RemainingPath;
             var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
 
-            while (string.IsNullOrEmpty(nextSegment.Remaining) == false)
+            while (!string.IsNullOrEmpty(nextSegment.Remaining))
             {
                 nextSegment = segmentContext.GetNextRemainingSegment(nextSegment.Remaining);
             }
 
-            if (string.IsNullOrWhiteSpace(nextSegment.Next) == false)
+            if (!string.IsNullOrWhiteSpace(nextSegment.Next))
             {
                 var localizableContent = content as ILocale;
                 var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
@@ -88,46 +92,22 @@ namespace Geta.Optimizely.Categories.Routing
 
             var routeValues = urlGeneratorContext.RouteValues;
 
-            // Single category
-            object currentCategory;
-            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out currentCategory))
-            {
-                ContentReference categoryLink = currentCategory as ContentReference;
-
-                if (ContentReference.IsNullOrEmpty(categoryLink))
-                    return null;
-
-                CategoryData category;
-
-                if (CategoryLoader.TryGet(categoryLink, out category) == false)
-                    return null;
-
-                // Remove from query now that it's handled.
-                routeValues.Remove(CategoryRoutingConstants.CurrentCategory);
-
-                return new PartialRouteData
-                {
-                    BasePathRoot = content.ContentLink,
-                    PartialVirtualPath = $"{category.RouteSegment}/"
-                };
-            }
-
             // Multiple categories
-            object currentCategories;
-            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategory, out currentCategories))
+            if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategories, out object currentCategories))
             {
-                var categoryContentLinks = currentCategories as IEnumerable<ContentReference>;
-
-                if (categoryContentLinks == null)
+                if (currentCategories is not CategoryLinkCollection categoryContentLinks)
+                {
                     return null;
+                }
 
                 var categorySegments = new List<string>();
 
-                foreach (var categoryContentLink in categoryContentLinks)
+                foreach (var categoryContentLink in categoryContentLinks.CategoryLinks)
                 {
-                    CategoryData category;
-                    if (ContentLoader.TryGet(categoryContentLink, out category) == false)
+                    if (!ContentLoader.TryGet(categoryContentLink, out CategoryData category))
+                    {
                         return null;
+                    }   
 
                     categorySegments.Add(category.RouteSegment);
                 }
@@ -135,7 +115,7 @@ namespace Geta.Optimizely.Categories.Routing
                 categorySegments.Sort(StringComparer.Create(LanguageResolver.GetPreferredCulture(), true));
 
                 // Remove from query now that it's handled.
-                routeValues.Remove(CategoryRoutingConstants.CurrentCategory);
+                routeValues.Remove(CategoryRoutingConstants.CurrentCategories);
 
                 return new PartialRouteData
                 {
