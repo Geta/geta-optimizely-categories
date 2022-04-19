@@ -29,7 +29,7 @@ namespace AlloyTemplates.Controllers
 
             var children = _contentLoader
                 .GetChildren<SitePageData>(currentPage.ContentLink);
-            if (currentCategories != null && currentCategories.Any())
+            if (currentCategories.Any())
             {
                 // Filter out content using current categories
                 var currentCategoryLinks = currentCategories.Select(currentCat => currentCat.ContentLink);
