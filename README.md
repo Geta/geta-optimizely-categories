@@ -1,14 +1,11 @@
 # Geta Optimizely Categories
 
-An alternative to Optimizely's default category functionality, where categories are instead stored as localizable IContent.
-* Master<br>
-
 ![](http://tc.geta.no/app/rest/builds/buildType:(id:GetaPackages_EPiCategories_00ci_2),branch:master/statusIcon)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Geta_geta-optimizely-categories&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Geta_geta-optimizely-categories)
 [![Platform](https://img.shields.io/badge/Platform-.NET%205-blue.svg?style=flat)](https://docs.microsoft.com/en-us/dotnet/)
 [![Platform](https://img.shields.io/badge/Optimizely-%2012-orange.svg?style=flat)](http://world.episerver.com/cms/)
 ## Description
-An alternative to Episerver's default category functionality, where categories are instead stored as localizable IContent.
+An alternative to Optimizely's default category functionality, where categories are instead stored as localizable IContent.
 
 ## Features
 * Localization (no more language XML files)
@@ -17,22 +14,56 @@ An alternative to Episerver's default category functionality, where categories a
 * Shared and site specific categories in multisite solutions
 * Partial routing of category URL segments
   
-## How to install
+## Installation
 Install NuGet package from Episerver NuGet Feed:
 
-	Install-Package Geta.EpiCategories
-	
-## CMS search providers (Episerver Find or Episerver Search)
-If you want to install a CMS search provider you can choose from Geta.EpiCategories.Find or Geta.EpiCategories.Search package depending on if you have Episerver Find installed in your project or not:
+	dotnet add package 
 
-	Install-Package Geta.EpiCategories.Search
-	
-or:
+# Configuration
 
-	Install-Package Geta.EpiCategories.Find
+Add the categories configuration in the Startup.cs in the `ConfigureServices` method. Below is an example with all available configuration you can set (values below are defaults and can be left out).
 
+```
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddCategories(o =>
+		{
+			o.CategorySeparator = "__";
+			o.DisableCategoryAsLinkableType = false;
+			o.HideDisallowedRootCategories = false;
+			o.ShowDefaultCategoryProperty = false;
+		});
+...
+}
+```
+
+In addition, the configuration can be read from the `appsettings.json`:
+
+```
+"Geta": {
+    "Categories": {
+        "CategorySeparator":  "__",
+		"DisableCategoryAsLinkableType": false,
+		"HideDisallowedRootCategories": false,
+		"ShowDefaultCategoryProperty": false
+    }
+}
+```
+
+The configuration from the `appsettings.json` will override any configuration set in the Startup.
+
+## Settings
+
+**CategorySeparator**: Default category separator is a double underscore "__": i.e. "/articles/entertainment__sports/"
+
+**DisableCategoryAsLinkableType**: By default set to false, allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
+
+**HideDisallowedRootCategories**: By default set to false. The default behavior is to show all categories in the selector, while it's only possible to select based on [AllowedTypes] setting. If you want to hide all root categories that doesn't match AllowedTypes.
+
+**ShowDefaultCategoryProperty**: By default set to false, hides the default Episerver category property
 
 ## How to use
+
 Start by creating a category content type that inherits from CategoryData. You can have multiple if you need. Note that CategoryData is included in the package, there is no need to create your own.
 
 	[ContentType]
@@ -48,11 +79,13 @@ Start by creating a category content type that inherits from CategoryData. You c
 	}
 
 ### Edit categories
+
 Instead of going to admin mode to manage categories, you now do it in edit mode, under the "Categories" tab in the main navigation component to the left. You work with them like normal pages, and it's possible to translate them. You can create categories that are shared between multiple sites or you can create site specific categories.
 
 ![ScreenShot](/docs/extended-category-tree.jpg)
 
 ### ICategorizableContent interface
+
 Implement ICategorizableContent on your content type class to categorize your content.
 
 	public class MyPageType : PageData, ICategorizableContent
@@ -82,15 +115,9 @@ If you want a single category on your content type just add a ContentReference p
 	[UIHint(CategoryUIHint.Category)]
 	public virtual ContentReference MainCategory { get; set; }
 
-### IEnumerable&lt;ContentReference> extension methods
-The following extension methods are included:
-
-1. MemberOf(this IEnumerable&lt;ContentReference> contentLinks, ContentReference contentReference)
-2. MemberOfAny(this IEnumerable&lt;ContentReference> contentLinks, IEnumerable&lt;ContentReference> otherContentLinks)
-3. MemberOfAll(this IEnumerable&lt;ContentReference> contentLinks, IEnumerable&lt;ContentReference> otherContentLinks)
-
 ### ICategoryContentLoader interface
-There is an implementation of ICategoryContentLoader (note that in 1.0.0 it is mistakenly named ICategoryContentRepository) that you can use to load categories:
+
+There is an implementation of ICategoryContentLoader that you can use to load categories:
 
 ```
 public interface ICategoryContentLoader
@@ -128,6 +155,7 @@ public class MyController : Controller
 ```
 
 ### IContentInCategoryLocator interface
+
 You can use IContentInCategoryLocator to find content in certain categories:
 
 ```
@@ -146,13 +174,15 @@ public interface IContentInCategoryLocator
 ```
 
 ## Routing
+
 Two routes are mapped during initialization. One for site categories and one for global categories. This means you can create templates for your category content types. They are routed in a similar way as normal pages. You can set the root segment on the "For This Site" and "For All Sites" category nodes in the Categories tree.
 
 ![ScreenShot](/docs/for-this-site.jpg)
 
-Using above example, the URL "/topics/sports/" would be routed to the site category called "Sports".
+Using above example, the URL "/siteassets/topics/sports/" would be routed to the site category called "Sports". Similarly you could go to "/globalassets/topics/global-category-1" for the global category "Global category 1".
 
 ### ICategoryRoutableContent interface
+
 Implement this on your content type:
 
     public class ArticleListPage: PageData, ICategoryRoutableContent 
@@ -161,44 +191,29 @@ Implement this on your content type:
 
   It will be possible to route category URL segments with the help of a partial router shipped in this package. Let's say you have an article list page with the URL "/articles/" on your site. If you have a category with the url segment of "sports", you can add it to the end of your list page URL, "/articles/sports/", and the category data will be added to the route values with the key "currentCategory". Your controller action method could look something like this:
 
-	public ActionResult Index(ArticleListPage currentPage, CategoryData currentCategory)
+	public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> currentCategories)
 	{
 	}
 
-You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/.
+You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment".
 
-	public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> currentCategories) // currentCategories will now contain "Sports" and "Entertainment" categories.
-	{
-	}
-
-Default category separator is "__" and you can change it by adding an appSetting in web.config:
-
-	<add key="GetaEpiCategories:CategorySeparator" value="__" />
 	
-There is a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:
+There are a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:
 
 	@Url.CategoryRoutedContentUrl(/*ContentReference*/ contentLink, /*ContentReference*/ categoryContentLink) // Single category
 	@Url.CategoryRoutedContentUrl(/*ContentReference*/ contentLink, /*IEnumerable<ContentReference>*/ categoryContentLinks) // Multiple categories
 
 	@UrlResolver.Current.GetCategoryRoutedUrl(/*ContentReference*/ contentLink, /*ContentReference*/ categoryContentLink) // Single category
 	@UrlResolver.Current.GetCategoryRoutedUrl(/*ContentReference*/ contentLink, /*IEnumerable<ContentReference>*/ categoryContentLinks) // Multiple categories
-	
-## Show default Episerver category
-This package hides the default Episerver category property. You can opt-out from this by adding an app setting:
-
-    <add key="GetaEpiCategories:ShowDefaultCategoryProperty" value="true" />
-	
-## Hide disallowed root categories
-The default behavior is to show all categories in the selector, while it's only possible to select based on [AllowedTypes] setting. If you want to hide all root categories that doesn't match AllowedTypes you can add this app setting:
-
-    <add key="GetaEpiCategories:HideDisallowedRootCategories" value="true" />
 
 ## Sandbox App
 Sandbox application is testing poligon for package new features and bug fixes.
 
-CMS username: epiadmin
-
-Password: 3p!Pass
+CMS username: admin@example.com
+Password: Episerver123!
 
 ## Package maintainer
+
 https://github.com/MattisOlsson
+
+https://github.com/brianweet
