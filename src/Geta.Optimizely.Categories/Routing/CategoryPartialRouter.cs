@@ -47,12 +47,12 @@ namespace Geta.Optimizely.Categories.Routing
             var thisSegment = segmentContext.RemainingPath;
             var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
 
-            while (string.IsNullOrEmpty(nextSegment.Remaining) == false)
+            while (!string.IsNullOrEmpty(nextSegment.Remaining))
             {
                 nextSegment = segmentContext.GetNextRemainingSegment(nextSegment.Remaining);
             }
 
-            if (string.IsNullOrWhiteSpace(nextSegment.Next) == false)
+            if (!string.IsNullOrWhiteSpace(nextSegment.Next))
             {
                 var localizableContent = content as ILocale;
                 var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
@@ -104,7 +104,7 @@ namespace Geta.Optimizely.Categories.Routing
 
                 foreach (var categoryContentLink in categoryContentLinks.CategoryLinks)
                 {
-                    if (ContentLoader.TryGet(categoryContentLink, out CategoryData category) == false)
+                    if (!ContentLoader.TryGet(categoryContentLink, out CategoryData category))
                     {
                         return null;
                     }   
