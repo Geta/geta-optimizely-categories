@@ -39,7 +39,10 @@ namespace Geta.Optimizely.Categories.Routing
 
         public object RoutePartial(ICategoryRoutableContent content, UrlResolverContext segmentContext)
         {
-            if (CategoriesResolved()) return null;
+            if (CategoriesResolved())
+            {
+                return null;
+            }
 
             var thisSegment = segmentContext.RemainingPath;
             var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
@@ -93,14 +96,18 @@ namespace Geta.Optimizely.Categories.Routing
             if (routeValues.TryGetValue(CategoryRoutingConstants.CurrentCategories, out object currentCategories))
             {
                 if (currentCategories is not CategoryLinkCollection categoryContentLinks)
+                {
                     return null;
+                }
 
                 var categorySegments = new List<string>();
 
                 foreach (var categoryContentLink in categoryContentLinks.CategoryLinks)
                 {
                     if (ContentLoader.TryGet(categoryContentLink, out CategoryData category) == false)
+                    {
                         return null;
+                    }   
 
                     categorySegments.Add(category.RouteSegment);
                 }
