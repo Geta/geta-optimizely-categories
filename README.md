@@ -21,7 +21,9 @@ An alternative to Optimizely's default category functionality, where categories 
 
 Install NuGet package from Episerver NuGet Feed:
 
-	dotnet add package Geta.Optimizely.Categories
+```
+dotnet add package Geta.Optimizely.Categories
+```
 
 Register tags in Startup.cs using the following service extension
 
