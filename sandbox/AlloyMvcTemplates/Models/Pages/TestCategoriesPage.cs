@@ -1,6 +1,13 @@
-﻿using EPiServer.DataAbstraction;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using AlloyMvcTemplates.Models.Categories;
+using EPiServer;
+using EPiServer.Core;
+using EPiServer.DataAbstraction;
 using EPiServer.DataAnnotations;
+using EPiServer.SpecializedProperties;
 using Geta.Optimizely.Categories;
+using Geta.Optimizely.Categories.DataAnnotations;
 
 namespace AlloyTemplates.Models.Pages
 {
@@ -14,6 +21,16 @@ namespace AlloyTemplates.Models.Pages
         IncludeOn = new[] { typeof(StartPage) })]
     public class TestCategoriesPage : SitePageData, ICategoryRoutableContent
     {
-        
+        [UIHint(CategoryUIHint.Category)]
+        public virtual ContentReference MainCategory { get; set; }
+
+        [AllowedTypes(typeof(BasicCategory), typeof(ExtendedCategory))]
+        public virtual IList<ContentReference> NativeListForCategories { get; set; }
+
+        public virtual LinkItemCollection TestLinkableTypes { get; set; }
+
+        [Categories]
+        [AllowedTypes(typeof(ExtendedCategory))]
+        public virtual IList<ContentReference> OnlyExtendedCategories { get; set; }
     }
 }
