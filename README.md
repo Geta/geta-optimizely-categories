@@ -45,6 +45,21 @@ public class ExtendedCategory : BasicCategory
 }
 ```
 
+Implement ICategorizableContent on your content type class to categorize your content.
+
+```csharp
+public class MyPageType : PageData, ICategorizableContent
+{
+  [Categories]
+  public virtual IList<ContentReference> Categories { get; set; }
+}
+```
+	
+Above property will look familiar if you have used standard Optimizely categories before.
+
+![category selector](/docs/category-selector.jpg)
+![category selector dialog](/docs/category-selector-dialog.jpg)
+
 ### Edit categories
 
 Instead of going to admin mode to manage categories, you now do it in edit mode, under the "Categories" tab in the main navigation component to the left. You work with them like normal pages, and it's possible to translate them. You can create categories that are shared between multiple sites or you can create site specific categories.
@@ -53,15 +68,21 @@ Instead of going to admin mode to manage categories, you now do it in edit mode,
 
 ## Configuration
 
-You can configure categories in Startup.cs. Below is an example with all available configuration you can set (values below are defaults and can be left out).
+- CategorySeparator - defaults to **"__"**
+  - i.e. "/articles/entertainment__sports/"
+- DisableCategoryAsLinkableType - defaults to **false**
+  - Allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
+- HideDisallowedRootCategories - defaults to **false**
+  - Possibility to hide root categories based on [AllowedTypes] setting
+- ShowDefaultCategoryProperty - default to **false**
+  - Allows you to show the default Episerver category property
+
+You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
 ```csharp
 services.AddCategories(o =>
 {
-	o.CategorySeparator = "__";
-	o.DisableCategoryAsLinkableType = false;
-	o.HideDisallowedRootCategories = false;
-	o.ShowDefaultCategoryProperty = false;
+	o.CategorySeparator = "---";
 });
 ```
 
@@ -70,41 +91,17 @@ In addition, the configuration can be read from the `appsettings.json`:
 ```
 "Geta": {
     "Categories": {
-        "CategorySeparator":  "__",
-		"DisableCategoryAsLinkableType": false,
-		"HideDisallowedRootCategories": false,
-		"ShowDefaultCategoryProperty": false
+      "CategorySeparator":  "__",
+      "DisableCategoryAsLinkableType": false,
+      "HideDisallowedRootCategories": false,
+      "ShowDefaultCategoryProperty": false
     }
 }
 ```
 
 The configuration from the `appsettings.json` will override any configuration set in Startup.cs.
 
-## Settings
-
-- CategorySeparator - defaults to "__"
-  - i.e. "/articles/entertainment__sports/"
-- DisableCategoryAsLinkableType - defaults to **false**
-  - Allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
-- HideDisallowedRootCategories - defaults to false
-  - Possibility to hide root categories based on [AllowedTypes] setting
-- ShowDefaultCategoryProperty - default to false
-  - Allows you to show the default Episerver category property
-
 ### ICategorizableContent interface
-
-Implement ICategorizableContent on your content type class to categorize your content.
-
-	public class MyPageType : PageData, ICategorizableContent
-	{
-		[Categories]
-		public virtual IList<ContentReference> Categories { get; set; }
-	}
-	
-Above property will look familiar if you have used standard Optimizely categories before.
-
-![category selector](/docs/category-selector.jpg)
-![category selector dialog](/docs/category-selector-dialog.jpg)
 
 There is a context menu in the selector where you quickly can create and auto publish a new category and automatically get back to the selector with the new category selected:
 
