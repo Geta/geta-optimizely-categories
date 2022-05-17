@@ -3,6 +3,19 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <PackageId>Geta.Optimizely.Categories</PackageId>
+    <Title>Geta Optimizely Categories</Title>
+    <Authors>Geta Digital</Authors>
+    <Company>Geta Digital</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Geta/geta-optimizely-categories</PackageProjectUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageIconUrl>https://cdn.geta.no/opensource/icons/Geta-logo-3.png</PackageIconUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>An alternative to Optimizely's default category functionality, where categories are instead stored as localizable IContent.</Description>
+    <PackageReleaseNotes>https://github.com/Geta/geta-optimizely-categories/blob/master/CHANGELOG.md</PackageReleaseNotes>
+    <PackageTags>Geta Optimizely Categories</PackageTags>
+    <RepositoryUrl>https://github.com/Geta/geta-optimizely-categories.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,4 +30,23 @@
     <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.2.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="module\module.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="module\module.config" />
+    <None Include="msbuild\CopyZipFiles.targets" />
+    <None Include="msbuild\Main.proj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\images\icon.png">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <Link>icon.png</Link>
+    </None>
+  </ItemGroup>
+
+  <Import Project="msbuild\Main.proj" />
 </Project>
