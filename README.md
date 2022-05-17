@@ -111,15 +111,19 @@ There is a context menu in the selector where you quickly can create and auto pu
 
 If you prefer to use the native content reference list editor for your categories you can skip the CategoriesAttribute:
 
-	[AllowedTypes(typeof(CategoryData))]
-	public virtual IList<ContentReference> Categories { get; set; }
+```csharp
+[AllowedTypes(typeof(CategoryData))]
+public virtual IList<ContentReference> Categories { get; set; }
+```
 
 ![content reference list](/docs/content-reference-list.jpg)
 
 If you want a single category on your content type just add a ContentReference property:
 
-	[UIHint(CategoryUIHint.Category)]
-	public virtual ContentReference MainCategory { get; set; }
+```csharp
+[UIHint(CategoryUIHint.Category)]
+public virtual ContentReference MainCategory { get; set; }
+```
 
 ### ICategoryContentLoader interface
 
