@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
 using EPiServer.Core.Routing;
-using EPiServer.Core.Routing.Pipeline;
-using EPiServer.DependencyInjection;
 using EPiServer.Shell;
 using EPiServer.Shell.Modules;
 using Geta.Optimizely.Categories.Routing;

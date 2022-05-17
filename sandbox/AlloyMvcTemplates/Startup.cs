@@ -45,13 +45,7 @@ namespace EPiServer.Templates.Alloy.Mvc
                 });
             }
 
-            services.AddCategories(o =>
-            {
-                o.CategorySeparator = "__";
-                o.DisableCategoryAsLinkableType = false;
-                o.HideDisallowedRootCategories = false;
-                o.ShowDefaultCategoryProperty = false;
-            });
+            services.AddCategories();
 
             services.AddCmsAspNetIdentity<ApplicationUser>();
             services.AddMvc();

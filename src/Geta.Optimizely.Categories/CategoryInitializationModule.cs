@@ -5,7 +5,6 @@ using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
-using Geta.Optimizely.Categories.Routing;
 
 namespace Geta.Optimizely.Categories
 {

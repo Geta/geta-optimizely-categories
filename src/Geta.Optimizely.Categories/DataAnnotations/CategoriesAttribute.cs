@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 
 namespace Geta.Optimizely.Categories.DataAnnotations
