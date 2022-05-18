@@ -12,12 +12,12 @@ namespace Geta.Optimizely.Categories.Configuration
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddCategories(this IServiceCollection services)
+        public static IServiceCollection AddGetaCategories(this IServiceCollection services)
         {
-            return AddCategories(services, o => { });
+            return AddGetaCategories(services, o => { });
         }
 
-        public static IServiceCollection AddCategories(
+        public static IServiceCollection AddGetaCategories(
             this IServiceCollection services,
             Action<CategoriesOptions> setupAction)
         {
@@ -26,15 +26,12 @@ namespace Geta.Optimizely.Categories.Configuration
                 o.ModelBinderProviders.Insert(0, new CategoryListModelBinderProvider());
             });
 
-            AddModule(services);
-
+            services.AddSingleton<CategoriesInitializer>();
             services.AddSingleton<IPartialRouter, CategoryPartialRouter>();
             services.AddTransient<IContentRepositoryDescriptor, CategoryContentRepositoryDescriptor>();
-
             services.AddSingleton<IContentInCategoryLocator, DefaultContentInCategoryLocator>();
             services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
             services.AddScoped<ICategoryRouteHelper, DefaultCategoryRouteHelper>();
-
             services.AddSingleton<CategorySettings>();
             services.AddOptions<CategoriesOptions>().Configure<IConfiguration>((options, configuration) =>
             {
@@ -42,11 +39,6 @@ namespace Geta.Optimizely.Categories.Configuration
                 configuration.GetSection("Geta:Categories").Bind(options);
             });
 
-            return services;
-        }
-
-        private static void AddModule(IServiceCollection services)
-        {
             services.Configure<ProtectedModuleOptions>(
                 pm =>
                 {
@@ -55,6 +47,8 @@ namespace Geta.Optimizely.Categories.Configuration
                         pm.Items.Add(new ModuleDetails { Name = Constants.ModuleName });
                     }
                 });
+
+            return services;
         }
     }
 }
