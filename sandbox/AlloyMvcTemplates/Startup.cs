@@ -6,6 +6,7 @@ using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
 using Geta.Optimizely.Categories.Configuration;
+using Geta.Optimizely.Categories.Infrastructure.Initialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -45,7 +46,7 @@ namespace EPiServer.Templates.Alloy.Mvc
                 });
             }
 
-            services.AddCategories();
+            services.AddGetaCategories();
 
             services.AddCmsAspNetIdentity<ApplicationUser>();
             services.AddMvc();
@@ -67,6 +68,8 @@ namespace EPiServer.Templates.Alloy.Mvc
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.UseGetaCategories();
 
             app.UseEndpoints(endpoints =>
             {

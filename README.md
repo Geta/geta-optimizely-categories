@@ -25,10 +25,16 @@ Install NuGet package from Episerver NuGet Feed:
 dotnet add package Geta.Optimizely.Categories
 ```
 
-Register tags in Startup.cs using the following service extension
+Register the module in Startup.cs using the following service extension
 
 ```csharp
-services.AddCategories();
+services.AddGetaCategories();
+```
+
+Then, call the following in the `Configure` method:
+
+```csharp
+app.UseGetaCategories();
 ```
 
 Start by creating a category content type that inherits from CategoryData. You can have multiple if you need. Note that CategoryData is included in the package, there is no need to create your own.
