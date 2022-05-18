@@ -10,7 +10,7 @@ namespace Geta.Optimizely.Categories
 {
     [VisitorGroupCriterion(
         Category = "Site Criteria",
-        DisplayName = "Visited Geta Category",
+        DisplayName = "Visited global Geta Category",
         Description = "Match when the visitor has visited a page with a specified geta category."
     )]
     public class CategoryCriterion : CriterionBase<CategoryCriterionSettings>
