@@ -18,7 +18,7 @@ namespace Geta.Optimizely.Categories
         private readonly IStateStorage _stateStorage;
         private readonly IContentLoader _contentLoader;
         private readonly ICategoryContentLoader _categoryContentLoader;
-        private const string _STORAGEKEY = "Optimizely:GetaCategoryViewedPage";
+        private const string _STORAGEKEY = "Optimizely_GetaCategoryViewedPage";
 
         public CategoryCriterion()
             : this(ServiceLocator.Current.GetInstance<IStateStorage>(),
@@ -62,7 +62,7 @@ namespace Geta.Optimizely.Categories
             if (_stateStorage.IsAvailable && pageCatIds != null && pageCatIds.Contains(int.Parse(Model.CategoryId)))
             {
                 var times = GetVisitedTimes() + 1;
-                _stateStorage.Save(_STORAGEKEY, times);
+                _stateStorage.Save(_STORAGEKEY, times.ToString());
             }
         }
 
