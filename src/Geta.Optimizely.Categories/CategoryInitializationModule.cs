@@ -17,18 +17,9 @@ namespace Geta.Optimizely.Categories
             _urlSegmentCreator = urlSegmentCreator;
         }
 
-        private bool _isInitialized;
-
         public void Initialize()
         {
-            if (_isInitialized)
-            {
-                return;
-            }
-
             _contentEvents.CreatingContent += OnCreatingContent;
-
-            _isInitialized = true;
         }
 
         private void OnCreatingContent(object sender, ContentEventArgs args)
