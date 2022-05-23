@@ -124,9 +124,9 @@ namespace Geta.Optimizely.Categories
         {
             return viewedCategories != null
                    && int.TryParse(Model.CategoryId, out var cat)
-                   && viewedCategories.TryGetValue(cat, out var count) ?
-                count :
-                0;
+                   && viewedCategories.TryGetValue(cat, out var count)
+                   ? count
+                   : 0;
         }
     }
 }
