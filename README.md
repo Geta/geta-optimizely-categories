@@ -206,6 +206,12 @@ There are a couple of UrlHelper and UrlResolver extension methods included to ge
 	@UrlResolver.Current.GetCategoryRoutedUrl(/*ContentReference*/ contentLink, /*IEnumerable<ContentReference>*/ categoryContentLinks) // Multiple categories
 ```
 
+### Visitorgroup
+
+![visitorgroup criteria](/docs/visitorgroup-criteria.jpg)
+
+You can use Geta Categories as visitor group criteria. Meaning that a user has to visit a page with the configured category a certain amount of times to match the criteria.
+
 ## Sandbox App
 Sandbox application is testing poligon for package new features and bug fixes.
 

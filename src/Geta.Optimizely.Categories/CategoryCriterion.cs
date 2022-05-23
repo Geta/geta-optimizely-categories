@@ -1,44 +1,37 @@
-﻿using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Principal;
+using System.Text;
+using System.Text.Json;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Personalization.VisitorGroups;
-using EPiServer.ServiceLocation;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Geta.Optimizely.Categories
 {
     [VisitorGroupCriterion(
         Category = "Site Criteria",
-        DisplayName = "Visited Geta Category",
+        DisplayName = "Visited global Geta Category",
         Description = "Match when the visitor has visited a page with a specified geta category."
     )]
     public class CategoryCriterion : CriterionBase<CategoryCriterionSettings>
     {
+        private readonly ILogger<CategoryCriterion> _logger;
         private readonly IStateStorage _stateStorage;
         private readonly IContentLoader _contentLoader;
-        private readonly ICategoryContentLoader _categoryContentLoader;
-        private const string _STORAGEKEY = "Optimizely:GetaCategoryViewedPage";
+        private const string StorageKey = "Optimizely_GetaCategoryViewedPage";
 
-        public CategoryCriterion()
-            : this(ServiceLocator.Current.GetInstance<IStateStorage>(),
-            ServiceLocator.Current.GetInstance<IContentLoader>(),
-            ServiceLocator.Current.GetInstance<ICategoryContentLoader>())
+        public CategoryCriterion(
+            ILogger<CategoryCriterion> logger,
+            IStateStorage stateStorage,
+            IContentLoader contentLoader)
         {
-        }
-        public CategoryCriterion(IStateStorage stateStorage, IContentLoader contentLoader, ICategoryContentLoader categoryContentLoader)
-        {
+            _logger = logger;
             _stateStorage = stateStorage;
             _contentLoader = contentLoader;
-            _categoryContentLoader = categoryContentLoader;
-        }
-
-        public override bool IsMatch(IPrincipal principal, HttpContext httpContext)
-        {
-            if (_stateStorage.IsAvailable && GetVisitedTimes() >= Model.ViewedTimes)
-                return true;
-
-            return false;
         }
 
         public override void Subscribe(ICriterionEvents criterionEvents)
@@ -51,35 +44,89 @@ namespace Geta.Optimizely.Categories
             criterionEvents.VisitedPage -= VisitedPage;
         }
 
+        public override bool IsMatch(IPrincipal principal, HttpContext httpContext)
+        {
+            if (!_stateStorage.IsAvailable)
+            {
+                return false;
+            }
+            var viewedCategories = Load(httpContext);
+            var visited = GetVisitedTimes(viewedCategories);
+
+            return visited >= Model.ViewedTimes;
+        }
+
         private void VisitedPage(object sender, CriterionEventArgs e)
         {
-            var page = _contentLoader.Get<IContent>(e.GetPageLink());
-            if (!(page is ICategorizableContent categorizable))
+            if (!_stateStorage.IsAvailable)
             {
                 return;
             }
-            var pageCatIds = categorizable.Categories?.Select(x => x.ID);
-            if (_stateStorage.IsAvailable && pageCatIds != null && pageCatIds.Contains(int.Parse(Model.CategoryId)))
+
+            if (!int.TryParse(Model.CategoryId, out var categoryId))
             {
-                var times = GetVisitedTimes() + 1;
-                _stateStorage.Save(_STORAGEKEY, times);
+                return;
             }
+
+            var viewedCategories = Load(e.HttpContext);
+
+            // When already true, no need to update anymore
+            if (GetVisitedTimes(viewedCategories) >= Model.ViewedTimes)
+            {
+                return;
+            }
+
+            if (!_contentLoader.TryGet<IContent>(e.GetPageLink(), out var page)
+                || page is not ICategorizableContent categorizable)
+            {
+                return;
+            }
+
+            // Test if it matches the configured cat id
+            var pageCatIds = categorizable.Categories?.Select(x => x.ID) ?? Enumerable.Empty<int>();
+            if (!pageCatIds.Contains(categoryId))
+            {
+                return;
+            }
+
+            var count = viewedCategories.ContainsKey(categoryId) ? viewedCategories[categoryId] : 0;
+            viewedCategories[categoryId] = ++count;
+            Save(e.HttpContext, viewedCategories);
         }
 
-        private int GetVisitedTimes()
+        private IDictionary<int, int> Load(HttpContext httpContext)
         {
-            var timesObj = _stateStorage.Load(_STORAGEKEY);
-            if (timesObj == null || string.IsNullOrEmpty(timesObj.ToString()))
+            try
             {
-                return 0;
+                var data = httpContext?.Items?[StorageKey] as string ?? _stateStorage.Load(StorageKey) as string;
+                if (data != null)
+                {
+                    return JsonSerializer.Deserialize<Dictionary<int, int>>(data);
+                }
             }
-
-            if (int.TryParse(timesObj.ToString(), out int times))
+            catch (Exception e)
             {
-                return times;
+                _logger.LogError(e, "Could not load Geta Category criterion from storage");
             }
+            return new Dictionary<int, int>();
+        }
 
-            return 0;
+        private void Save(HttpContext httpContext, IDictionary<int, int> viewedCategories)
+        {
+            if (httpContext?.Items != null)
+            {
+                httpContext.Items[StorageKey] = viewedCategories;
+            }
+            _stateStorage.Save(StorageKey, JsonSerializer.Serialize(viewedCategories));
+        }
+
+        private int GetVisitedTimes(IDictionary<int, int> viewedCategories)
+        {
+            return viewedCategories != null
+                   && int.TryParse(Model.CategoryId, out var cat)
+                   && viewedCategories.TryGetValue(cat, out var count)
+                   ? count
+                   : 0;
         }
     }
 }
