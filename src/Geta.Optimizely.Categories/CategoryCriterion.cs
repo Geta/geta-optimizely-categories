@@ -22,7 +22,7 @@ namespace Geta.Optimizely.Categories
         private readonly ILogger<CategoryCriterion> _logger;
         private readonly IStateStorage _stateStorage;
         private readonly IContentLoader _contentLoader;
-        private const string STORAGEKEY = "Optimizely_GetaCategoryViewedPage";
+        private const string StorageKey = "Optimizely_GetaCategoryViewedPage";
 
         public CategoryCriterion(
             ILogger<CategoryCriterion> logger,
@@ -98,7 +98,7 @@ namespace Geta.Optimizely.Categories
         {
             try
             {
-                var data = httpContext?.Items?[STORAGEKEY] as string ?? _stateStorage.Load(STORAGEKEY) as string;
+                var data = httpContext?.Items?[StorageKey] as string ?? _stateStorage.Load(StorageKey) as string;
                 if (data != null)
                 {
                     return JsonSerializer.Deserialize<Dictionary<int, int>>(data);
@@ -115,9 +115,9 @@ namespace Geta.Optimizely.Categories
         {
             if (httpContext?.Items != null)
             {
-                httpContext.Items[STORAGEKEY] = viewedCategories;
+                httpContext.Items[StorageKey] = viewedCategories;
             }
-            _stateStorage.Save(STORAGEKEY, JsonSerializer.Serialize(viewedCategories));
+            _stateStorage.Save(StorageKey, JsonSerializer.Serialize(viewedCategories));
         }
 
         private int GetVisitedTimes(IDictionary<int, int> viewedCategories)
