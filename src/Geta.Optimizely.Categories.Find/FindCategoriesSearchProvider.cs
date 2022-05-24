@@ -1,12 +1,15 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
+using EPiServer;
 using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.Find.Cms.SearchProviders;
 using EPiServer.Framework.Localization;
+using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.Search;
 using EPiServer.Web;
+using EPiServer.Web.Routing;
 
 namespace Geta.Optimizely.Categories.Find
 {
@@ -17,7 +20,29 @@ namespace Geta.Optimizely.Categories.Find
         private readonly ISiteDefinitionResolver _siteDefinitionResolver;
         private readonly IEnumerable<IContentRepositoryDescriptor> _contentRepositoryDescriptors;
 
-        public FindCategoriesSearchProvider(LocalizationService localizationService, ISiteDefinitionResolver siteDefinitionResolver, IContentTypeRepository contentTypeRepository, UIDescriptorRegistry uiDescriptorRegistry, IEnumerable<IContentRepositoryDescriptor> contentRepositoryDescriptors) : base(localizationService, siteDefinitionResolver, contentTypeRepository, uiDescriptorRegistry)
+        public FindCategoriesSearchProvider(
+            LocalizationService localizationService,
+            ISiteDefinitionResolver siteDefinitionResolver,
+            IContentTypeRepository<ContentType> contentTypeRepository,
+            UIDescriptorRegistry uiDescriptorRegistry,
+            EditUrlResolver editUrlResolver,
+            ServiceAccessor<SiteDefinition> currentSiteDefinition,
+            IContentLanguageAccessor languageResolver,
+            IUrlResolver urlResolver,
+            ITemplateResolver templateResolver,
+            IContentRepository contentRepository,
+            IEnumerable<IContentRepositoryDescriptor> contentRepositoryDescriptors) 
+        : base(
+            localizationService,
+            siteDefinitionResolver,
+            contentTypeRepository,
+            uiDescriptorRegistry,
+            editUrlResolver,
+            currentSiteDefinition,
+            languageResolver,
+            urlResolver,
+            templateResolver,
+            contentRepository)
         {
             _localizationService = localizationService;
             _siteDefinitionResolver = siteDefinitionResolver;
@@ -58,9 +83,6 @@ namespace Geta.Optimizely.Categories.Find
             return editPath;
         }
 
-        protected override string IconCssClass(CategoryData contentData)
-        {
-            return "epi-resourceIcon epi-resourceIcon-category";
-        }
+        protected override string IconCssClass => "epi-resourceIcon epi-resourceIcon-category";
     }
 }
