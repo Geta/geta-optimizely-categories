@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using EPiServer.Core;
 using EPiServer.Find;
 
-namespace Geta.EpiCategories.Find.Extensions
+namespace Geta.Optimizely.Categories.Find.Extensions
 {
     public static class ITypeSearchExtensions
     {

@@ -7,7 +7,7 @@ using EPiServer.Find;
 using EPiServer.Find.Api.Facets;
 using EPiServer.ServiceLocation;
 
-namespace Geta.EpiCategories.Find.Extensions
+namespace Geta.Optimizely.Categories.Find.Extensions
 {
     public static class IHasFacetResultsExtensions
     {

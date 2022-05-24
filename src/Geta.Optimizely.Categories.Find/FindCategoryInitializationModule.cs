@@ -3,9 +3,9 @@ using EPiServer.Find.Cms.Module;
 using EPiServer.Find.Framework;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
-using Geta.EpiCategories.Find.Extensions;
+using Geta.Optimizely.Categories.Find.Extensions;
 
-namespace Geta.EpiCategories.Find
+namespace Geta.Optimizely.Categories.Find
 {
     [InitializableModule]
     [ModuleDependency(typeof(IndexingModule))]

@@ -1,6 +1,6 @@
 ﻿using EPiServer.Core;
 
-namespace Geta.EpiCategories.Find
+namespace Geta.Optimizely.Categories.Find
 {
     public class ContentCount
     {

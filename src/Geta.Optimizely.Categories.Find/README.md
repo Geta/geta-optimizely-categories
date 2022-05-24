@@ -10,7 +10,7 @@ CMS category search provider and extensions methods for projects with EpiCategor
 ## How to install
 Install NuGet package from Episerver NuGet Feed:
 
-	Install-Package Geta.EpiCategories.Find
+	Install-Package Geta.Optimizely.Categories.Find
 
 ## How to use
 ### ITypeSearch<T> extension methods:

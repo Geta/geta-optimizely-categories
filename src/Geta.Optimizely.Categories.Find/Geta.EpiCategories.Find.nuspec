@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0"?>
 <package >
     <metadata>
-        <id>Geta.EpiCategories.Find</id>
+        <id>Geta.Optimizely.Categories.Find</id>
         <version>$version$</version>
-        <title>Geta.EpiCategories.Find</title>
+        <title>Geta.Optimizely.Categories.Find</title>
         <authors>Geta</authors>
         <owners>Geta</owners>
         <projectUrl>https://github.com/Geta/EpiCategories</projectUrl>
@@ -19,6 +19,6 @@
         </dependencies>
     </metadata>
     <files>
-        <file src="bin\Geta.EpiCategories.Find.dll" target="lib\net461" />
+        <file src="bin\Geta.Optimizely.Categories.Find.dll" target="lib\net461" />
     </files>
 </package>

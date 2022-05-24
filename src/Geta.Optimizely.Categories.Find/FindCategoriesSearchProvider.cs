@@ -8,7 +8,7 @@ using EPiServer.Shell;
 using EPiServer.Shell.Search;
 using EPiServer.Web;
 
-namespace Geta.EpiCategories.Find
+namespace Geta.Optimizely.Categories.Find
 {
     [SearchProvider]
     public class FindCategoriesSearchProvider : EnterpriseContentSearchProviderBase<CategoryData, ContentType>

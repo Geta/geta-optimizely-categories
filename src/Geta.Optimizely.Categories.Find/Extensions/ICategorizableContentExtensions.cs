@@ -5,7 +5,7 @@ using EPiServer.Find;
 using EPiServer.Find.Api.Querying;
 using EPiServer.Find.Api.Querying.Filters;
 
-namespace Geta.EpiCategories.Find.Extensions
+namespace Geta.Optimizely.Categories.Find.Extensions
 {
     public static class ICategorizableContentExtensions
     {
