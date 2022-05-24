@@ -5,6 +5,14 @@ VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geta.Optimizely.Categories", "src\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj", "{B98D1645-CBE3-4466-BCDA-09B0E4044449}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sandbox", "sandbox", "{3139E63B-C823-4FBE-934D-F1B7CAB3D34C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Foundation", "Foundation", "{0380AE51-D952-4763-B05E-11E922049AAA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{71E23965-36DA-44FC-8845-FC13FD5431CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Foundation", "sandbox\Foundation\src\Foundation\Foundation.csproj", "{FD55722F-036D-45D4-84B4-3B97317DF2E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,11 +23,20 @@ Global
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD55722F-036D-45D4-84B4-3B97317DF2E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD55722F-036D-45D4-84B4-3B97317DF2E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD55722F-036D-45D4-84B4-3B97317DF2E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD55722F-036D-45D4-84B4-3B97317DF2E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC4AAEB0-EC5C-4B9D-AEC3-D2BCB8D89226}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0380AE51-D952-4763-B05E-11E922049AAA} = {3139E63B-C823-4FBE-934D-F1B7CAB3D34C}
+		{71E23965-36DA-44FC-8845-FC13FD5431CF} = {0380AE51-D952-4763-B05E-11E922049AAA}
+		{FD55722F-036D-45D4-84B4-3B97317DF2E7} = {71E23965-36DA-44FC-8845-FC13FD5431CF}
 	EndGlobalSection
 EndGlobal
