@@ -1,0 +1,52 @@
+﻿@using Foundation.Features.CategoryTesting
+@using Geta.Optimizely.Categories.Extensions
+@model TestCategoriesModel
+
+<h1 @Html.EditAttributes(x => x.CurrentContent.PageName)>@Model.CurrentContent.PageName</h1>
+<p class="introduction" @Html.EditAttributes(x => x.CurrentContent.PageDescription)>@Model.CurrentContent.PageDescription</p>
+<div class="row">
+    <h2>Site categories:</h2>
+    <ul>
+        @foreach (var category in Model.SiteCategories)
+        {
+            <li>
+                <a href="@Url.CategoryRoutedContentUrl(Model.CurrentContent.ContentLink, category.ContentLink)">@category.Name (@category.ContentLink)</a>
+            </li>    
+        }
+        @if (!Model.SiteCategories.Any())
+        {
+            <li>None</li>
+        }
+    </ul>
+</div>
+<div class="row">
+    <h2>Current categories from url/route:</h2>
+    <ul>
+        @foreach (var category in Model.CurrentCategories)
+        {
+            <li>@category.Name (@category.ContentLink)</li>
+        }
+        @if (!Model.CurrentCategories.Any())
+        {
+            <li>None</li>
+        }
+    </ul>
+    </div>
+ <div class="row">
+    <h2>Children filtered on current categories:</h2>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Categories</th>
+        </tr>
+        @foreach (var child in Model.Children)
+        {
+            <tr>
+                <td>@child.Name</td>
+                <td>
+                    @string.Join(" ", child.Categories?.Select(x => $"({x})") ?? Enumerable.Empty<string>())
+                </td>
+            </tr>
+        }
+    </table>
+</div>
