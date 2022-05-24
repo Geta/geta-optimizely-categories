@@ -11,6 +11,7 @@ using Foundation.Features.Category;
 using Foundation.Features.Shared.SelectionFactories;
 using Foundation.Infrastructure.Cms;
 using Foundation.Infrastructure.Cms.Extensions;
+using Geta.Optimizely.Categories;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -209,24 +210,24 @@ namespace Foundation.Features.Blog.BlogListPage
 
             pages = currentPage.IncludeAllLevels ? listRoot.FindPagesByPageType(true, blogListItemPageType.ID) : _contentLoader.GetChildren<BlogItemPage.BlogItemPage>(listRoot);
 
-            //if (category != null)
-            //{
-            //    pages = pages.Where(x =>
-            //    {
-            //        var contentReferences = ((ICategorizableContent)x).Categories;
-            //        return contentReferences != null && contentReferences
-            //                   .Intersect(new List<ContentReference>() { category.ContentLink }).Any();
-            //    });
-            //}
-            //else if (currentPage.CategoryListFilter != null && currentPage.CategoryListFilter.Any())
-            //{
-            //    pages = pages.Where(x =>
-            //    {
-            //        var contentReferences = ((ICategorizableContent)x).Categories;
-            //        return contentReferences != null &&
-            //               contentReferences.Intersect(currentPage.CategoryListFilter).Any();
-            //    });
-            //}
+            if (category != null)
+            {
+                pages = pages.Where(x =>
+                {
+                    var contentReferences = ((ICategorizableContent)x).Categories;
+                    return contentReferences != null && contentReferences
+                               .Intersect(new List<ContentReference>() { category.ContentLink }).Any();
+                });
+            }
+            else if (currentPage.CategoryListFilter != null && currentPage.CategoryListFilter.Any())
+            {
+                pages = pages.Where(x =>
+                {
+                    var contentReferences = ((ICategorizableContent)x).Categories;
+                    return contentReferences != null &&
+                           contentReferences.Intersect(currentPage.CategoryListFilter).Any();
+                });
+            }
 
             return pages;
         }
