@@ -1,4 +1,4 @@
-﻿using EPiServer.Find.ClientConventions;
+using EPiServer.Find.ClientConventions;
 using EPiServer.Find.Cms.Module;
 using EPiServer.Find.Framework;
 using EPiServer.Framework;
@@ -9,7 +9,6 @@ namespace Geta.Optimizely.Categories.Find
 {
     [InitializableModule]
     [ModuleDependency(typeof(IndexingModule))]
-    [ModuleDependency(typeof(CategoryInitializationModule))]
     public class FindCategoryInitializationModule : IInitializableModule
     {
         public void Initialize(InitializationEngine context)
