@@ -3,11 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sandbox", "Sandbox", "{793F21F7-51B1-441F-9D57-54FB84D14FB0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geta.Optimizely.Categories", "src\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj", "{B98D1645-CBE3-4466-BCDA-09B0E4044449}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlloyMvcTemplates", "sandbox\AlloyMvcTemplates\AlloyMvcTemplates.csproj", "{385A5412-37F4-4364-B4D4-CA080D143AF2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,16 +15,9 @@ Global
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B98D1645-CBE3-4466-BCDA-09B0E4044449}.Release|Any CPU.Build.0 = Release|Any CPU
-		{385A5412-37F4-4364-B4D4-CA080D143AF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{385A5412-37F4-4364-B4D4-CA080D143AF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{385A5412-37F4-4364-B4D4-CA080D143AF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{385A5412-37F4-4364-B4D4-CA080D143AF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{385A5412-37F4-4364-B4D4-CA080D143AF2} = {793F21F7-51B1-441F-9D57-54FB84D14FB0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC4AAEB0-EC5C-4B9D-AEC3-D2BCB8D89226}

@@ -35,7 +35,6 @@
 
   <ItemGroup>
     <None Include="module\module.config" />
-    <None Include="msbuild\CopyZipFiles.targets" />
     <None Include="msbuild\Main.proj" />
   </ItemGroup>
 
