@@ -7,7 +7,6 @@ using EPiServer.Web.Mvc;
 using EPiServer.Web.Routing;
 using Foundation.Features.Blog.BlogItemPage;
 using Foundation.Features.Category;
-//using Foundation.Features.Category;
 using Foundation.Features.Shared.SelectionFactories;
 using Foundation.Infrastructure.Cms;
 using Foundation.Infrastructure.Cms.Extensions;

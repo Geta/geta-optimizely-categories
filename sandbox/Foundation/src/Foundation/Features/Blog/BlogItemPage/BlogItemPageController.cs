@@ -4,7 +4,6 @@ using EPiServer.Core.Html;
 using EPiServer.Web.Mvc;
 using EPiServer.Web.Routing;
 using Foundation.Features.Category;
-//using Foundation.Features.Category;
 using Foundation.Features.Shared;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -59,8 +58,8 @@ namespace Foundation.Features.Blog.BlogItemPage
             if (currentPage.Categories != null)
             {
                 var allCategories = _contentLoader.GetItems(currentPage.Categories, CultureInfo.CurrentUICulture);
-                return allCategories.
-                    Select(cat => new BlogItemPageViewModel.TagItem()
+                return allCategories
+                    .Select(cat => new BlogItemPageViewModel.TagItem()
                     {
                         Title = cat.Name,
                         Url = _blogTagFactory.GetTagUrl(currentPage, cat.ContentLink),
