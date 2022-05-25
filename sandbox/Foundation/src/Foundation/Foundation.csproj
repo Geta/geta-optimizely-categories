@@ -119,8 +119,19 @@
 		<Compile Remove="Infrastructure\Cms\Extensions\IAppBuilderExtensions.cs" />
 		<Compile Remove="Infrastructure\Commerce\Markets\AJAXLocalizationFilterAttribute.cs" />
 		<Compile Remove="Infrastructure\Display\FoundationDisplayModeProvider.cs" />
+		<None Remove="modules\_protected\Geta.Optimizely.Categories\Geta.Optimizely.Categories.zip" />
+		<Content Include="modules\_protected\Geta.Optimizely.Categories\Geta.Optimizely.Categories.zip">
+		  <PackagePath>contentFiles\any\any\modules\_protected\$(MSBuildProjectName)</PackagePath>
+		  <PackageCopyToOutput>true</PackageCopyToOutput>
+		  <BuildAction>None</BuildAction>
+		  <Pack>true</Pack>
+		</Content>
 		<Folder Include="wwwroot\" />
 		<None Include="Features\Shared\Components\Dropdown\Default.cshtml" />
 		<None Include="Features\Shared\Components\Money\Default.cshtml" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\..\src\Geta.Optimizely.Categories.Find\Geta.Optimizely.Categories.Find.csproj" />
+	  <ProjectReference Include="..\..\..\..\src\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj" />
 	</ItemGroup>
 </Project>
