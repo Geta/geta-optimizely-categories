@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -11,7 +11,7 @@ namespace Geta.Optimizely.Categories.Find.Extensions
     {
         public static ITypeSearch<T> FilterByCategories<T>(this ITypeSearch<T> search, IEnumerable<ContentReference> categories) where T : ICategorizableContent
         {
-            if (categories == null || categories.Any() == false)
+            if (categories == null || !categories.Any())
             {
                 return search;
             }
@@ -21,7 +21,7 @@ namespace Geta.Optimizely.Categories.Find.Extensions
 
         public static ITypeSearch<T> FilterHitsByCategories<T>(this ITypeSearch<T> search, IEnumerable<ContentReference> categories) where T : ICategorizableContent
         {
-            if (categories == null || categories.Any() == false)
+            if (categories == null || !categories.Any())
             {
                 return search;
             }

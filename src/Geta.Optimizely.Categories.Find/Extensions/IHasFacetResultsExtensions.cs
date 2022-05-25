@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EPiServer;
@@ -38,8 +38,7 @@ namespace Geta.Optimizely.Categories.Find.Extensions
 
             foreach (var value in facet.Terms)
             {
-                ContentReference contentLink;
-                if (ContentReference.TryParse(value.Term, out contentLink) == false)
+                if (!ContentReference.TryParse(value.Term, out var contentLink))
                 {
                     continue;
                 }
