@@ -16,6 +16,7 @@ An alternative to Optimizely's default category functionality, where categories 
 * Access rights support (some editors should perhaps have limited category access)
 * Shared and site specific categories in multisite solutions
 * Partial routing of category URL segments
+* Search provider support: [Geta.Optimizely.Categories.Find](src/Geta.Optimizely.Categories.Find/README.md)
   
 ## How to get started?
 
