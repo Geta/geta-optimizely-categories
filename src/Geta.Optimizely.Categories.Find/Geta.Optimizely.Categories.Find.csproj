@@ -20,6 +20,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\images\icon.png" Link="icon.png">
+      <PackagePath>\</PackagePath>
+      <Pack>true</Pack>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="EPiServer.Find.Cms" Version="14.0.4" />
   </ItemGroup>
   <ItemGroup>
