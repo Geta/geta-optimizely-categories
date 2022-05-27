@@ -29,5 +29,6 @@ jobs:
       - name: Push
         run: |
           dotnet nuget push Geta.Optimizely.Categories.${{env.VERSION}}.nupkg --source https://nuget.pkg.github.com/Geta/index.json --api-key ${{env.GITHUB_TOKEN}}
+          dotnet nuget push Geta.Optimizely.Categories.Find.${{env.VERSION}}.nupkg --source https://nuget.pkg.github.com/Geta/index.json --api-key ${{env.GITHUB_TOKEN}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
