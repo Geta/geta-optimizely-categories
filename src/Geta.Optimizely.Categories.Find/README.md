@@ -10,13 +10,20 @@ CMS category search provider and extensions methods for projects with Geta.Optim
 * Category filter and facet extension methods for ITypeSearch and IHasFacetResults.
 
 ## How to install
+
 Install NuGet package from Optimizely NuGet Feed:
 
 ``` 
 dotnet add package  Geta.Optimizely.Categories.Find
 ```
 
+Then, call the following in the Configure method:
+```
+app.UseGetaCategoriesFind();
+```
+
 ## How to use
+
 ### ITypeSearch<T> extension methods:
 
 ```csharp
