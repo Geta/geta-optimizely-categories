@@ -221,6 +221,7 @@ Password: Episerver123!
 ## Breaking changes from Geta.EpiCategories
 
 - The partial router for `ICategoryRoutableContent` only supports `IList<CategoryData>`
+- `IEnumerableExtensions`: `MemberOf` `MemberAny` `MemberAll` have been moved to [Geta.Optimizely.Extensions v2.1.0](https://github.com/Geta/geta-optimizely-extensions/releases/tag/v2.1.0)
 
 ## Package maintainer
 
