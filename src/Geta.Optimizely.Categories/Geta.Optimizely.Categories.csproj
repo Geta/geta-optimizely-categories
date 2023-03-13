@@ -16,6 +16,9 @@
     <PackageReleaseNotes>https://github.com/Geta/geta-optimizely-categories/blob/master/CHANGELOG.md</PackageReleaseNotes>
     <PackageTags>Geta Optimizely Categories</PackageTags>
     <RepositoryUrl>https://github.com/Geta/geta-optimizely-categories.git</RepositoryUrl>
+    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.1</AssemblyVersion>
+    <FileVersion>1.0.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
