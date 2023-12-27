@@ -11,6 +11,7 @@ using EPiServer.Web.Routing;
 namespace Geta.Optimizely.Categories
 {
     [AvailableContentTypes(Availability = Availability.Specific, Include = new[] { typeof(CategoryData) })]
+    [ContentType(GUID = "49D8091E-BAD8-4A48-B545-77DBA3D2F555", AvailableInEditMode = false)]
     public class CategoryData : StandardContentBase, IRoutable
     {
         private string _routeSegment;
