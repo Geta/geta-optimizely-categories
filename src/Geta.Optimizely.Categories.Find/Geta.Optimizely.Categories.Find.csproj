@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <PackageId>Geta.Optimizely.Categories.Find</PackageId>
     <Title>Geta Optimizely Categories Find</Title>
@@ -17,16 +17,13 @@
     <RepositoryUrl>https://github.com/Geta/geta-optimizely-categories.git</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\images\icon.png" Link="icon.png">
       <PackagePath>\</PackagePath>
       <Pack>true</Pack>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="EPiServer.Find.Cms" Version="14.0.4" />
+    <PackageReference Include="EPiServer.Find.Cms" Version="[14.0.4, 15.0)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj" />
