@@ -23,7 +23,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="EPiServer.Find.Cms" Version="[14.0.4, 15.0)" />
+    <PackageReference Include="EPiServer.Find.Cms" Version="14.0.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj" />
