@@ -151,6 +151,10 @@ public interface ICategoryContentLoader
     IEnumerable<T> GetSiteCategories<T>() where T : CategoryData;
     //... + overloads
     bool TryGet<T>(ContentReference categoryLink, out T category) where T : CategoryData;
+    //... + overloads
+    IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment) where T : CategoryData;
+    //... + overloads
+    T GetCategoryByPath<T>(string path) where T : CategoryData;
 }
 ```
 
