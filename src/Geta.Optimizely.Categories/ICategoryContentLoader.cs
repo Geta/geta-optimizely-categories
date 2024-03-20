@@ -25,6 +25,22 @@ namespace Geta.Optimizely.Categories
 
         T GetFirstBySegment<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData;
 
+        IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment) where T : CategoryData;
+
+        IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, CultureInfo culture) where T : CategoryData;
+
+        IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, LoaderOptions loaderOptions) where T : CategoryData;
+
+        IEnumerable<T> GetCategoriesBySegment<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData;
+
+        T GetCategoryByPath<T>(string path) where T : CategoryData;
+        
+        T GetCategoryByPath<T>(string path, CultureInfo culture) where T : CategoryData;
+        
+        T GetCategoryByPath<T>(string path, LoaderOptions loaderOptions) where T : CategoryData;
+       
+        T GetCategoryByPath<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData;
+
         IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData;
 
         IEnumerable<T> GetGlobalCategories<T>(CultureInfo culture) where T : CategoryData;

@@ -17,11 +17,12 @@ namespace Geta.Optimizely.Categories
     {
         protected readonly IContentRepository ContentRepository;
         protected readonly LanguageResolver LanguageResolver;
-
-        public DefaultCategoryContentLoader(IContentRepository contentRepository, LanguageResolver languageResolver)
+        protected readonly CategorySettings CategorySettings;
+        public DefaultCategoryContentLoader(IContentRepository contentRepository, LanguageResolver languageResolver, CategorySettings categorySettings)
         {
             ContentRepository = contentRepository;
             LanguageResolver = languageResolver;
+            CategorySettings = categorySettings;
         }
 
         public virtual T Get<T>(ContentReference categoryLink) where T : CategoryData
@@ -95,6 +96,95 @@ namespace Geta.Optimizely.Categories
             return categories.FirstOrDefault(x => x.RouteSegment.Equals(urlSegment, StringComparison.InvariantCultureIgnoreCase));
         }
 
+        public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment) where T : CategoryData
+        {
+            return GetCategoriesBySegment<T>(urlSegment, CreateDefaultLoadOptions());
+        }
+
+        public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, CultureInfo culture) where T : CategoryData
+        {
+            var loaderOptions = new LoaderOptions
+            {
+                LanguageLoaderOption.Specific(culture)
+            };
+
+            return GetCategoriesBySegment<T>(urlSegment, loaderOptions);
+        }
+
+        public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
+        {
+            if (SiteDefinition.Current.SiteAssetsRoot != SiteDefinition.Current.GlobalAssetsRoot)
+            {
+                var siteCategory = GetCategoriesBySegment<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), urlSegment, loaderOptions);
+
+                if (siteCategory != null && siteCategory.Any())
+                {
+                    return siteCategory;
+                }
+            }
+
+            return GetCategoriesBySegment<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), urlSegment, loaderOptions);
+        }
+
+        public virtual IEnumerable<T> GetCategoriesBySegment<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
+        {
+            var descendents = ContentRepository.GetDescendents(parentLink);
+
+            var categories = ContentRepository
+                .GetItems(descendents, loaderOptions)
+                .OfType<T>();
+
+            return categories.Where(x => x.RouteSegment.Equals(urlSegment, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        public T GetCategoryByPath<T>(string path) where T : CategoryData
+        {
+            return GetCategoryByPath<T>(path, CreateDefaultLoadOptions());
+        }
+
+        public T GetCategoryByPath<T>(string path, CultureInfo culture) where T : CategoryData
+        {
+            var loaderOptions = new LoaderOptions
+            {
+                LanguageLoaderOption.Specific(culture)
+            };
+
+            return GetCategoryByPath<T>(path, loaderOptions);
+        }
+
+        public virtual T GetCategoryByPath<T>(string path, LoaderOptions loaderOptions) where T : CategoryData
+        {
+            if (SiteDefinition.Current.SiteAssetsRoot != SiteDefinition.Current.GlobalAssetsRoot)
+            {
+                var siteCategory = GetCategoryByPath<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), path, loaderOptions);
+
+                if (siteCategory != null)
+                {
+                    return siteCategory;
+                }
+            }
+
+            return GetCategoryByPath<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), path, loaderOptions);
+        }
+
+
+        public virtual T GetCategoryByPath<T>(ContentReference parentLink, string path, LoaderOptions loaderOptions) where T : CategoryData
+        {
+            var trimmedUrl = path.TrimEnd('/');
+            var urlSegment = trimmedUrl.Split('/').Last();
+
+            // Efficiently fetch descendants once and filter in-memory.
+            var descendants = ContentRepository.GetDescendents(parentLink);
+            var categories = ContentRepository
+                .GetItems(descendants, loaderOptions)
+                .OfType<T>()
+                .Where(x => x.RouteSegment.Equals(urlSegment, StringComparison.InvariantCultureIgnoreCase));
+
+            return categories
+                .FirstOrDefault(
+                    category => CategoryPath(category).Equals(trimmedUrl, StringComparison.InvariantCultureIgnoreCase));
+        }
+
         public virtual IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData
         {
             return GetChildren<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot());
@@ -144,6 +234,23 @@ namespace Geta.Optimizely.Categories
             {
                 LanguageLoaderOption.Fallback(LanguageResolver.GetPreferredCulture())
             };
+        }
+
+        private string CategoryPath(CategoryData category, string path = "")
+        {
+            if (category.ContentLink.ID != CategorySettings.GlobalCategoriesRoot && category.ContentLink.ID != CategorySettings.SiteCategoriesRoot)
+            {
+                path = "/" + category.RouteSegment + path;
+
+                if (ContentRepository.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
+                {
+                    return CategoryPath(parentCategory, path);
+                }
+            }
+
+            path = path.TrimEnd('/');
+
+            return path.TrimStart('/');
         }
     }
 }

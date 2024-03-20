@@ -3,11 +3,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Core.Routing;
 using EPiServer.Core.Routing.Pipeline;
+using EPiServer.DataAbstraction;
 using EPiServer.Globalization;
+using EPiServer.Shell.Web;
 using EPiServer.Web;
 using Geta.Optimizely.Categories.Configuration;
 using Geta.Optimizely.Categories.Extensions;
@@ -24,6 +28,8 @@ namespace Geta.Optimizely.Categories.Routing
         private readonly IHttpContextAccessor _httpContextAccessor;
         protected readonly CategoriesOptions Configuration;
         public string CategorySeparator => Configuration.CategorySeparator;
+
+        private readonly string _trailingSlash = "/";
         private HttpContext HttpContext => _httpContextAccessor.HttpContext;
 
         public CategoryPartialRouter(
@@ -47,39 +53,54 @@ namespace Geta.Optimizely.Categories.Routing
                 return null;
             }
 
-            var thisSegment = segmentContext.RemainingPath;
-            var nextSegment = segmentContext.GetNextRemainingSegment(segmentContext.RemainingPath);
+            // Trim the trailing slash from the remaining path to normalize the segment processing.
+            var remainingPath = segmentContext.RemainingPath.TrimEnd(_trailingSlash);
 
-            while (!string.IsNullOrEmpty(nextSegment.Remaining))
-            {
-                nextSegment = segmentContext.GetNextRemainingSegment(nextSegment.Remaining);
-            }
-
-            if (!string.IsNullOrWhiteSpace(nextSegment.Next))
+            if (!string.IsNullOrWhiteSpace(remainingPath))
             {
                 var localizableContent = content as ILocale;
                 var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
+                var segments = remainingPath.Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
 
-                var categoryUrlSegments = nextSegment.Next.Split(new [] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
-                // Verify that all categories exist
-                foreach (var categoryUrlSegment in categoryUrlSegments)
+                var categoryUrlSegments = new List<string>();
+                var categoriesFound = false;
+
+                foreach (var segment in segments)
                 {
-                    var category = CategoryLoader.GetFirstBySegment<CategoryData>(categoryUrlSegment, preferredCulture);
-                    if (category == null)
+                    if (Configuration.UseUrlPathForCategoryRetrieval)
                     {
-                        return null;
+                        var category = CategoryLoader.GetCategoryByPath<CategoryData>(segment, preferredCulture);
+                        if (category != null)
+                        {
+                            categoryUrlSegments.Add(segment);
+                            categoriesFound = true;
+                        }
+                    }
+                    else
+                    {
+                        var urlSegment = segment.Contains(_trailingSlash) ? segment.Split(_trailingSlash).Last() : segment;
+                        var category = CategoryLoader.GetFirstBySegment<CategoryData>(urlSegment, preferredCulture);
+
+                        if (category != null)
+                        {
+                            categoryUrlSegments.Add(urlSegment);
+                            categoriesFound = true;
+                        }
                     }
                 }
 
-                segmentContext.RemainingPath = thisSegment.Substring(0, thisSegment.LastIndexOf(nextSegment.Next, StringComparison.InvariantCultureIgnoreCase));
-
-                HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryUrlSegments);
-
-                return content;
+                if (categoriesFound)
+                {
+                    // Reset the remaining path and store the found categories in the route values for further processing.
+                    segmentContext.RemainingPath = string.Empty;
+                    HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryUrlSegments.Distinct().ToArray());
+                    return content;
+                }
             }
 
             return null;
         }
+
 
         private bool CategoriesResolved()
         {
@@ -110,7 +131,7 @@ namespace Geta.Optimizely.Categories.Routing
                     if (!ContentLoader.TryGet(categoryContentLink, out CategoryData category))
                     {
                         return null;
-                    }   
+                    }
 
                     categorySegments.Add(category.RouteSegment);
                 }

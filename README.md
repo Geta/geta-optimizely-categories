@@ -84,6 +84,8 @@ Instead of going to admin mode to manage categories, you now do it in edit mode,
   - Possibility to hide root categories based on [AllowedTypes] setting
 - ShowDefaultCategoryProperty - default to **false**
   - Allows you to show the default Episerver category property
+- UseUrlPathForCategoryRetrieval - default to **false**
+  - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
@@ -102,7 +104,8 @@ In addition, the configuration can be read from the `appsettings.json`:
       "CategorySeparator":  "__",
       "DisableCategoryAsLinkableType": false,
       "HideDisallowedRootCategories": false,
-      "ShowDefaultCategoryProperty": false
+      "ShowDefaultCategoryProperty": false,
+      "UseUrlPathForCategoryRetrieval": false
     }
 }
 ```
