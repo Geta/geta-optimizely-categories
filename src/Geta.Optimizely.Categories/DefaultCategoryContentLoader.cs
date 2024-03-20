@@ -113,17 +113,27 @@ namespace Geta.Optimizely.Categories
 
         public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
         {
+            var categories = new List<T>();
+
             if (SiteDefinition.Current.SiteAssetsRoot != SiteDefinition.Current.GlobalAssetsRoot)
             {
-                var siteCategory = GetCategoriesBySegment<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), urlSegment, loaderOptions);
+                var siteCategories =
+                    GetCategoriesBySegment<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), urlSegment, loaderOptions);
 
-                if (siteCategory != null && siteCategory.Any())
+                if (siteCategories != null && siteCategories.Any())
                 {
-                    return siteCategory;
+                    categories.AddRange(siteCategories);
                 }
             }
 
-            return GetCategoriesBySegment<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), urlSegment, loaderOptions);
+            var globalCategories = GetCategoriesBySegment<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), urlSegment, loaderOptions);
+
+            if (globalCategories != null && globalCategories.Any())
+            {
+                categories.AddRange(globalCategories);
+            }
+
+            return categories;
         }
 
         public virtual IEnumerable<T> GetCategoriesBySegment<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
@@ -238,14 +248,11 @@ namespace Geta.Optimizely.Categories
 
         private string CategoryPath(CategoryData category, string path = "")
         {
-            if (category.ContentLink.ID != CategorySettings.GlobalCategoriesRoot && category.ContentLink.ID != CategorySettings.SiteCategoriesRoot)
-            {
-                path = "/" + category.RouteSegment + path;
+            path = "/" + category.RouteSegment + path;
 
-                if (ContentRepository.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
-                {
-                    return CategoryPath(parentCategory, path);
-                }
+            if (ContentRepository.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
+            {
+                return CategoryPath(parentCategory, path);
             }
 
             path = path.TrimEnd('/');
