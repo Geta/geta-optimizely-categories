@@ -180,7 +180,7 @@ Two routes are mapped during initialization. One for site categories and one for
 
 ![for this site routing](/docs/for-this-site.jpg)
 
-Using above example, the URL "/siteassets/topics/sports/" would be routed to the site category called "Sports". Similarly you could go to "/globalassets/topics/global-category-1" for the global category "Global category 1".
+As illustrated in the given example, if the UseUrlPathForCategoryRetrieval is enabled (set to true), navigating to the URL "/topics/sports/" directs you to the site's "Sports" category. In a similar manner, accessing "/global-topics/global-category-1" takes you to the "Global category 1". On the other hand, when UseUrlPathForCategoryRetrieval is disabled (set to false), the URL "/topics/sports/" will retrieve all categories associated with the segment "sports". Likewise, the URL "/global-topics/global-category-1" will fetch all categories, both global and site-specific, linked with the segment "global-category-1"
 
 ### ICategoryRoutableContent interface
 
