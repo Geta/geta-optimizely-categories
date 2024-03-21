@@ -39,7 +39,7 @@ namespace Geta.Optimizely.Categories
         
         T GetCategoryByPath<T>(string path, LoaderOptions loaderOptions) where T : CategoryData;
        
-        T GetCategoryByPath<T>(ContentReference parentLink, string urlSegment, LoaderOptions loaderOptions) where T : CategoryData;
+        T GetCategoryByPath<T>(ContentReference parentLink, string path, LoaderOptions loaderOptions) where T : CategoryData;
 
         IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData;
 
