@@ -41,6 +41,7 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
             EditorConfiguration["settings"] = categoryRepositoryDescriptor;
             EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
+            EditorConfiguration["multiple"] = true;
 
             base.ModifyMetadata(metadata, attributes);
         }

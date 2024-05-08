@@ -42,6 +42,7 @@ namespace Geta.Optimizely.Categories.DataAnnotations
             additionalValue.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
             additionalValue.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
             additionalValue.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
+            additionalValue.EditorConfiguration["multiple"] = true;
         }
     }
 }
