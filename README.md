@@ -84,6 +84,8 @@ Instead of going to admin mode to manage categories, you now do it in edit mode,
   - Possibility to hide root categories based on [AllowedTypes] setting
 - ShowDefaultCategoryProperty - default to **false**
   - Allows you to show the default Episerver category property
+- UseUrlPathForCategoryRetrieval - default to **false**
+  - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
@@ -102,7 +104,8 @@ In addition, the configuration can be read from the `appsettings.json`:
       "CategorySeparator":  "__",
       "DisableCategoryAsLinkableType": false,
       "HideDisallowedRootCategories": false,
-      "ShowDefaultCategoryProperty": false
+      "ShowDefaultCategoryProperty": false,
+      "UseUrlPathForCategoryRetrieval": false
     }
 }
 ```
@@ -148,6 +151,10 @@ public interface ICategoryContentLoader
     IEnumerable<T> GetSiteCategories<T>() where T : CategoryData;
     //... + overloads
     bool TryGet<T>(ContentReference categoryLink, out T category) where T : CategoryData;
+    //... + overloads
+    IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment) where T : CategoryData;
+    //... + overloads
+    T GetCategoryByPath<T>(string path) where T : CategoryData;
 }
 ```
 
@@ -173,7 +180,7 @@ Two routes are mapped during initialization. One for site categories and one for
 
 ![for this site routing](/docs/for-this-site.jpg)
 
-Using above example, the URL "/siteassets/topics/sports/" would be routed to the site category called "Sports". Similarly you could go to "/globalassets/topics/global-category-1" for the global category "Global category 1".
+As illustrated in the given example, if the UseUrlPathForCategoryRetrieval is enabled (set to true), navigating to the URL "/topics/sports/" directs you to the site's "Sports" category. In a similar manner, accessing "/global-topics/global-category-1" takes you to the "Global category 1". On the other hand, when UseUrlPathForCategoryRetrieval is disabled (set to false), the URL "/topics/sports/" will retrieve all categories associated with the segment "sports". Likewise, the URL "/global-topics/global-category-1" will fetch all categories, both global and site-specific, linked with the segment "global-category-1"
 
 ### ICategoryRoutableContent interface
 
