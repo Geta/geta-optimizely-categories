@@ -17,12 +17,10 @@ namespace Geta.Optimizely.Categories
     {
         protected readonly IContentRepository ContentRepository;
         protected readonly LanguageResolver LanguageResolver;
-        protected readonly CategorySettings CategorySettings;
-        public DefaultCategoryContentLoader(IContentRepository contentRepository, LanguageResolver languageResolver, CategorySettings categorySettings)
+        public DefaultCategoryContentLoader(IContentRepository contentRepository, LanguageResolver languageResolver)
         {
             ContentRepository = contentRepository;
             LanguageResolver = languageResolver;
-            CategorySettings = categorySettings;
         }
 
         public virtual T Get<T>(ContentReference categoryLink) where T : CategoryData
