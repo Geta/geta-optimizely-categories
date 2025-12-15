@@ -86,10 +86,7 @@ function (
                 return;
             }
 
-            when(this.store.get(this.item.contentLink)).then(lang.hitch(this, function (content) {
-                if (!content.properties.isSelectable) {
-                    return;
-                }
+            when(true).then(lang.hitch(this, function () {
 
                 var container = domConstruct.create('span', {
                     'class': 'epi-checkboxNode dijitTreeExpando'
@@ -101,7 +98,9 @@ function (
                     tabIndex: -1,
                     checked: this.checked,
                     onChange: lang.hitch(this, function (checked) {
-                        this.onNodeSelectChanged(checked, content);
+                        when(this.store.get(this.item.contentLink)).then(lang.hitch(this, function (content) {
+                            this.onNodeSelectChanged(checked, content);
+                        }));
                     })
                 });
 
