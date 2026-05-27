@@ -5,27 +5,34 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EPiServer;
+using EPiServer.Applications;
 using EPiServer.Cms.Shell.UI.ObjectEditing.EditorDescriptors;
+using EPiServer.Cms.Shell.UI.ObjectEditing.InternalMetadata;
 using EPiServer.Core;
+using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
 using EPiServer.Shell.ObjectEditing.EditorDescriptors;
+using EPiServer.Web;
 
 namespace Geta.Optimizely.Categories.EditorDescriptors
 {
     [EditorDescriptorRegistration(TargetType = typeof(IList<ContentReference>), UIHint = CategoryUIHint.Categories)]
     public class CategoriesEditorDescriptor : ContentReferenceListEditorDescriptor
     {
-        private readonly IEnumerable<IContentRepositoryDescriptor> _contentRepositoryDescriptors;
+        private readonly IContentRepositoryDescriptorRegistry _contentRepositoryDescriptorRegistry;
         private readonly CategorySettings _categorySettings;
 
         public CategoriesEditorDescriptor(
-            IEnumerable<IContentRepositoryDescriptor> contentRepositoryDescriptors,
+            IContentRepositoryDescriptorRegistry contentRepositoryDescriptorRegistry,
             IContentLoader contentLoader,
+            ListLengthSettingsProvider listLengthSettingsProvider,
+            IApplicationResolver applicationResolver,
+            ServiceAccessor<SystemDefinition> systemDefinitionAccessor,
             CategorySettings categorySettings)
-            : base(contentRepositoryDescriptors, contentLoader)
+            : base(contentRepositoryDescriptorRegistry, contentLoader, listLengthSettingsProvider, applicationResolver, systemDefinitionAccessor)
         {
-            _contentRepositoryDescriptors = contentRepositoryDescriptors;
+            _contentRepositoryDescriptorRegistry = contentRepositoryDescriptorRegistry;
             _categorySettings = categorySettings;
         }
 
@@ -33,7 +40,7 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         {
             var allowedTypes = new[] {typeof(CategoryData)};
             var categoryRepositoryDescriptor =
-                _contentRepositoryDescriptors.First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
+                _contentRepositoryDescriptorRegistry.List().First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
 
             ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
             AllowedTypes = allowedTypes;
