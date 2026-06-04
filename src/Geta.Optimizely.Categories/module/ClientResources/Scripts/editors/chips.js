@@ -1,3 +1,6 @@
+// Copyright (c) Geta Digital. All rights reserved.
+// Licensed under Apache-2.0. See the LICENSE file in the project root for more information
+
 // Renders the selected categories as chips inside `host`.
 //
 // Pure DOM, no framework. The editor entry (CategorySelector.js) owns state

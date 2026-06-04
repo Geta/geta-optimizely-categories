@@ -1,3 +1,6 @@
+// Copyright (c) Geta Digital. All rights reserved.
+// Licensed under Apache-2.0. See the LICENSE file in the project root for more information
+
 // Lightweight modal shell for the category picker. Self-contained — no
 // framework, no CMS shell dependency. Returns a small API that the wiring
 // (Task 9) uses to mount the tree/search/create UI inside `body`.

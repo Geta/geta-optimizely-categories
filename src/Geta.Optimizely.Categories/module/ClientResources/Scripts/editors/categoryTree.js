@@ -1,3 +1,6 @@
+// Copyright (c) Geta Digital. All rights reserved.
+// Licensed under Apache-2.0. See the LICENSE file in the project root for more information
+
 // Lazy-loading checkbox tree for the category picker.
 //
 // Pure DOM, no framework. Children are fetched on first expand via the api

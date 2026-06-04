@@ -1,3 +1,6 @@
+// Copyright (c) Geta Digital. All rights reserved.
+// Licensed under Apache-2.0. See the LICENSE file in the project root for more information
+
 // Value-model helpers for the category property editor.
 //
 // CMS 13 hands the editor an `initialValue` that is conceptually an array of

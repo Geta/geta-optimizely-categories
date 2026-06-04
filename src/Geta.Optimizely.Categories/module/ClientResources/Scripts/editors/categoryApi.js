@@ -1,3 +1,6 @@
+// Copyright (c) Geta Digital. All rights reserved.
+// Licensed under Apache-2.0. See the LICENSE file in the project root for more information
+
 // Hybrid data client for the category property editor.
 //
 // READ paths hit the CMS 13 built-in shell stores (captured during discovery,
