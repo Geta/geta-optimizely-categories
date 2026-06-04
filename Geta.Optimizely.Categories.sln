@@ -5,19 +5,19 @@ VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geta.Optimizely.Categories", "src\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj", "{B98D1645-CBE3-4466-BCDA-09B0E4044449}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Geta.Optimizely.Categories.Web", "src\Geta.Optimizely.Categories.Web\Geta.Optimizely.Categories.Web.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geta.Optimizely.Categories.Web", "src\Geta.Optimizely.Categories.Web\Geta.Optimizely.Categories.Web.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "geta-foundation-core", "geta-foundation-core", "{637F7C28-82DB-4DFA-ADB4-B6061538FC11}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Foundation", "sub\geta-foundation-core\src\Foundation\Foundation.csproj", "{482B37E4-8CBF-426A-865C-8AB7E4E145DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Foundation", "sub\geta-foundation-core\src\Foundation\Foundation.csproj", "{482B37E4-8CBF-426A-865C-8AB7E4E145DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Foundation.AppHost", "sub\geta-foundation-core\src\Foundation.AppHost\Foundation.AppHost.csproj", "{21873564-1FF0-41B3-B9EE-3D1EAF274763}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Foundation.AppHost", "sub\geta-foundation-core\src\Foundation.AppHost\Foundation.AppHost.csproj", "{21873564-1FF0-41B3-B9EE-3D1EAF274763}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Foundation.AppHost.ServiceDefaults", "sub\geta-foundation-core\src\Foundation.AppHost.ServiceDefaults\Foundation.AppHost.ServiceDefaults.csproj", "{FF8CF906-96C1-4205-8E53-CFE933F054A2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Foundation.AppHost.ServiceDefaults", "sub\geta-foundation-core\src\Foundation.AppHost.ServiceDefaults\Foundation.AppHost.ServiceDefaults.csproj", "{FF8CF906-96C1-4205-8E53-CFE933F054A2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Geta.Optimizely.Categories.Tests", "tests\Geta.Optimizely.Categories.Tests\Geta.Optimizely.Categories.Tests.csproj", "{08CA7750-BA09-4987-BC55-2D6F7638C381}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geta.Optimizely.Categories.Tests", "tests\Geta.Optimizely.Categories.Tests\Geta.Optimizely.Categories.Tests.csproj", "{08CA7750-BA09-4987-BC55-2D6F7638C381}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
@@ -108,6 +108,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{B98D1645-CBE3-4466-BCDA-09B0E4044449} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{482B37E4-8CBF-426A-865C-8AB7E4E145DA} = {637F7C28-82DB-4DFA-ADB4-B6061538FC11}
 		{21873564-1FF0-41B3-B9EE-3D1EAF274763} = {637F7C28-82DB-4DFA-ADB4-B6061538FC11}
 		{FF8CF906-96C1-4205-8E53-CFE933F054A2} = {637F7C28-82DB-4DFA-ADB4-B6061538FC11}

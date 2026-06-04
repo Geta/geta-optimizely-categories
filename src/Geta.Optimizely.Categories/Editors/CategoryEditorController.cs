@@ -15,6 +15,7 @@ namespace Geta.Optimizely.Categories.Editors
     /// Only this one write path is package-owned — read paths (tree, search, resolve)
     /// use the built-in CMS shell stores.
     /// </summary>
+    [ApiController]
     [Authorize(Roles = "WebEditors,WebAdmins,CmsEditors,CmsAdmins")]
     [Route("geta-optimizely-categories/api/[action]")]
     public class CategoryEditorController : ControllerBase
