@@ -1,8 +1,8 @@
 # Geta Optimizely Categories
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Geta_geta-optimizely-categories&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Geta_geta-optimizely-categories)
-[![Platform](https://img.shields.io/badge/Platform-.NET%206-blue.svg?style=flat](https://img.shields.io/badge/Platform-.NET%206-blue.svg?style=flat))](https://docs.microsoft.com/en-us/dotnet/)
-[![Platform](https://img.shields.io/badge/Optimizely-%2012-orange.svg?style=flat)](http://world.episerver.com/cms/)
+[![Platform](https://img.shields.io/badge/Platform-.NET%2010-blue.svg?style=flat](https://img.shields.io/badge/Platform-.NET%2010-blue.svg?style=flat))](https://docs.microsoft.com/en-us/dotnet/)
+[![Platform](https://img.shields.io/badge/Optimizely-%2013-orange.svg?style=flat)](http://world.episerver.com/cms/)
 
 ## Description
 
@@ -74,6 +74,35 @@ Instead of going to admin mode to manage categories, you now do it in edit mode,
 
 ![extended category tree](/docs/extended-category-tree.jpg)
 
+## Upgrading to Optimizely CMS 13
+
+This version targets .NET 10 and Optimizely CMS 13. Besides the framework upgrade (which requires retargeting and recompiling your solution), there is one behavioural breaking change to be aware of.
+
+### `[AllowedTypes(typeof(CategoryData))]` no longer renders the category picker
+
+On Optimizely CMS 12 you could skip the `[Categories]` attribute and apply `[AllowedTypes(typeof(CategoryData))]` to an `IList<ContentReference>` / `ContentReference` property to reuse the native content reference editor for categories.
+
+On Optimizely CMS 13 the native content reference picker no longer resolves the base `CategoryData` type to its concrete category content types, so such a property opens an **empty picker** ("No Contents").
+
+Switch the property to the package's own editor (the `[Categories]` attribute or a `CategoryUIHint`), which is unaffected:
+
+```csharp
+// Before (CMS 12) — no longer works on CMS 13
+[AllowedTypes(typeof(CategoryData))]
+public virtual IList<ContentReference> Categories { get; set; }
+
+// After (CMS 13) — use one of these
+[Categories]
+public virtual IList<ContentReference> Categories { get; set; }
+
+[UIHint(CategoryUIHint.Categories)]
+public virtual IList<ContentReference> Categories { get; set; }
+```
+
+For a single category, use `[UIHint(CategoryUIHint.Category)]` on a `ContentReference` (unchanged).
+
+This is a **source-only** change — stored category references are not affected and no data migration is required.
+
 ## Configuration
 
 - CategorySeparator - defaults to **"__"**
@@ -118,14 +147,14 @@ There is a context menu in the selector where you quickly can create and auto pu
 
 ![category selector dialog create new](/docs/category-selector-dialog-create-new.jpg)
 
-If you prefer to use the native content reference list editor for your categories you can skip the CategoriesAttribute:
+If you prefer a `UIHint` over the `[Categories]` attribute, use `CategoryUIHint.Categories` for a multi-select list:
 
 ```csharp
-[AllowedTypes(typeof(CategoryData))]
+[UIHint(CategoryUIHint.Categories)]
 public virtual IList<ContentReference> Categories { get; set; }
 ```
 
-![content reference list](/docs/content-reference-list.jpg)
+> **Note:** On Optimizely CMS 12 you could instead apply `[AllowedTypes(typeof(CategoryData))]` and reuse the native content reference editor. This is **no longer supported on Optimizely CMS 13** — see [Upgrading to Optimizely CMS 13](#upgrading-to-optimizely-cms-13).
 
 If you want a single category on your content type just add a ContentReference property:
 

@@ -34,7 +34,10 @@ namespace Geta.Optimizely.Categories.DataAnnotations
 
             var allowedTypes = new[] { typeof(CategoryData) };
             var categoryRepositoryDescriptor = _contentRepositoryDescriptors.First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
-            additionalValue.ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
+            // For a packaged module the editor JS must be addressed via its served URL
+            // (module client-resource path + version). Paths.ToClientResource keeps the
+            // version automatic.
+            additionalValue.ClientEditingClass = Paths.ToClientResource(Constants.ModuleName, "ClientResources/Scripts/editors/CategorySelector.js");
             additionalValue.EditorConfiguration["AllowedTypes"] = allowedTypes;
             additionalValue.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
             additionalValue.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
@@ -43,6 +46,11 @@ namespace Geta.Optimizely.Categories.DataAnnotations
             additionalValue.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
             additionalValue.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
             additionalValue.EditorConfiguration["multiple"] = true;
+
+            // CMS 13: opt the [Categories] attribute path into the native ES6 module editor pipeline,
+            // matching CategoriesEditorDescriptor. Without this flag, CMS would treat ClientEditingClass
+            // as a legacy Dojo module id.
+            additionalValue.EditorConfiguration["isJavascriptModule"] = true;
         }
     }
 }

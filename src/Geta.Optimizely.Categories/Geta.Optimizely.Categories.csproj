@@ -19,10 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EPiServer.CMS.AspNetCore" Version="13.0.2" />
-    <PackageReference Include="EPiServer.CMS.AspNetCore.Routing" Version="13.0.2" />
-    <PackageReference Include="EPiServer.CMS.UI.Core" Version="13.0.2" />
-    <PackageReference Include="EPiServer.Framework" Version="13.0.2" />
+    <PackageReference Include="EPiServer.CMS.AspNetCore" Version="13.1.0" />
+    <PackageReference Include="EPiServer.CMS.AspNetCore.Routing" Version="13.1.0" />
+    <PackageReference Include="EPiServer.CMS.UI.Core" Version="13.1.0" />
+    <PackageReference Include="EPiServer.Framework" Version="13.1.0" />
   </ItemGroup>
 
   <ItemGroup>
