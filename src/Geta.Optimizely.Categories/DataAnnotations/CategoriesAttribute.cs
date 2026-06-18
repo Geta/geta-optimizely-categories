@@ -3,10 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
+using Geta.Optimizely.Categories.EditorDescriptors;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 
 namespace Geta.Optimizely.Categories.DataAnnotations
@@ -32,17 +32,8 @@ namespace Geta.Optimizely.Categories.DataAnnotations
             if (context.DisplayMetadata.AdditionalValues[ExtendedMetadata.ExtendedMetadataDisplayKey] is not ExtendedMetadata additionalValue)
                 return;
 
-            var allowedTypes = new[] { typeof(CategoryData) };
-            var categoryRepositoryDescriptor = _contentRepositoryDescriptors.First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
-            additionalValue.ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
-            additionalValue.EditorConfiguration["AllowedTypes"] = allowedTypes;
-            additionalValue.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
-            additionalValue.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
-            additionalValue.EditorConfiguration["categorySettings"] = _categorySettings;
-            additionalValue.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
-            additionalValue.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
-            additionalValue.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
-            additionalValue.EditorConfiguration["multiple"] = true;
+            // Shared with CategoriesEditorDescriptor (the UIHint path) — both wire the same editor.
+            CategoryEditorMetadata.Apply(additionalValue, _contentRepositoryDescriptors, _categorySettings);
         }
     }
 }

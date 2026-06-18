@@ -9,7 +9,6 @@ using EPiServer.Core;
 using EPiServer.Core.Routing;
 using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
-using EPiServer.Shell.Web;
 using EPiServer.Web;
 using Geta.Optimizely.Categories.Configuration;
 using Geta.Optimizely.Categories.Extensions;
@@ -51,8 +50,13 @@ namespace Geta.Optimizely.Categories.Routing
                 return null;
             }
 
-            // Trim the trailing slash from the remaining path to normalize the segment processing.
-            var remainingPath = segmentContext.RemainingPath.TrimEnd(_trailingSlash);
+            var nextSegment = segmentContext.GetNextSegment();
+            if (nextSegment.Next.IsEmpty)
+            {
+                return null;
+            }
+
+            var remainingPath = nextSegment.Next.ToString().TrimEnd(_trailingSlash[0]);
 
             if (!string.IsNullOrWhiteSpace(remainingPath))
             {
@@ -89,8 +93,8 @@ namespace Geta.Optimizely.Categories.Routing
 
                 if (categoriesFound)
                 {
-                    // Reset the remaining path and store the found categories in the route values for further processing.
-                    segmentContext.RemainingPath = string.Empty;
+                    // Consume all remaining segments by advancing to the end of the next segment.
+                    // segmentContext.RemainingSegments is updated by GetNextSegment().
                     HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryUrlSegments.Distinct().ToArray());
                     return content;
                 }
@@ -98,7 +102,6 @@ namespace Geta.Optimizely.Categories.Routing
 
             return null;
         }
-
 
         private bool CategoriesResolved()
         {

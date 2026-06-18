@@ -3,9 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using EPiServer;
-using EPiServer.Cms.Shell.UI.ObjectEditing.EditorDescriptors;
 using EPiServer.Core;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
@@ -13,17 +10,27 @@ using EPiServer.Shell.ObjectEditing.EditorDescriptors;
 
 namespace Geta.Optimizely.Categories.EditorDescriptors
 {
+    /// <summary>
+    /// Wires the CMS 13 ES6 module category-picker editor onto multi-select category
+    /// properties (IList&lt;ContentReference&gt; + UIHint = "Categories").
+    ///
+    /// Inherits from plain <see cref="EditorDescriptor"/> (NOT
+    /// ContentReferenceListEditorDescriptor) on purpose: in CMS 13 the list-editor base
+    /// rewrites metadata.ClientEditingClass and EditorConfiguration even when we set our
+    /// own values after the base call, falling back to the stock list editor. Writing
+    /// straight onto <see cref="ExtendedMetadata"/> without a base call mirrors the
+    /// path used by <see cref="DataAnnotations.CategoriesAttribute"/>, which is the
+    /// verified-working path end-to-end (chips, tree, search, create-category).
+    /// </summary>
     [EditorDescriptorRegistration(TargetType = typeof(IList<ContentReference>), UIHint = CategoryUIHint.Categories)]
-    public class CategoriesEditorDescriptor : ContentReferenceListEditorDescriptor
+    public class CategoriesEditorDescriptor : EditorDescriptor
     {
         private readonly IEnumerable<IContentRepositoryDescriptor> _contentRepositoryDescriptors;
         private readonly CategorySettings _categorySettings;
 
         public CategoriesEditorDescriptor(
             IEnumerable<IContentRepositoryDescriptor> contentRepositoryDescriptors,
-            IContentLoader contentLoader,
             CategorySettings categorySettings)
-            : base(contentRepositoryDescriptors, contentLoader)
         {
             _contentRepositoryDescriptors = contentRepositoryDescriptors;
             _categorySettings = categorySettings;
@@ -31,19 +38,10 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
 
         public override void ModifyMetadata(ExtendedMetadata metadata, IEnumerable<Attribute> attributes)
         {
-            var allowedTypes = new[] {typeof(CategoryData)};
-            var categoryRepositoryDescriptor =
-                _contentRepositoryDescriptors.First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
+            // Shared with CategoriesAttribute (the [Categories] path) — both wire the same editor.
+            CategoryEditorMetadata.Apply(metadata, _contentRepositoryDescriptors, _categorySettings);
 
-            ClientEditingClass = "geta-optimizely-categories/widget/CategorySelector";
-            AllowedTypes = allowedTypes;
-            EditorConfiguration["categorySettings"] = _categorySettings;
-            EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
-            EditorConfiguration["settings"] = categoryRepositoryDescriptor;
-            EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
-            EditorConfiguration["multiple"] = true;
-
-            base.ModifyMetadata(metadata, attributes);
+            // Intentionally no `base.ModifyMetadata` call — see class summary.
         }
     }
 }
