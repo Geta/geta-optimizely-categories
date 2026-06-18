@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using EPiServer.Core;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
@@ -39,29 +38,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
 
         public override void ModifyMetadata(ExtendedMetadata metadata, IEnumerable<Attribute> attributes)
         {
-            var allowedTypes = new[] { typeof(CategoryData) };
-            var categoryRepositoryDescriptor = _contentRepositoryDescriptors
-                .First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
-
-            // For a packaged module the editor JS must be addressed via its served URL
-            // (module client-resource path + version). Paths.ToClientResource keeps the
-            // version automatic, so this still works after the package version is bumped.
-            metadata.ClientEditingClass = Paths.ToClientResource(
-                Constants.ModuleName,
-                "ClientResources/Scripts/editors/CategorySelector.js");
-
-            metadata.EditorConfiguration["AllowedTypes"] = allowedTypes;
-            metadata.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
-            metadata.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
-            metadata.EditorConfiguration["categorySettings"] = _categorySettings;
-            metadata.EditorConfiguration["repositoryKey"] = CategoryContentRepositoryDescriptor.RepositoryKey;
-            metadata.EditorConfiguration["settings"] = categoryRepositoryDescriptor;
-            metadata.EditorConfiguration["roots"] = categoryRepositoryDescriptor.Roots;
-            metadata.EditorConfiguration["multiple"] = true;
-
-            // CMS 13: opt into the native ES6 module editor pipeline. Without this flag,
-            // CMS would treat ClientEditingClass as a legacy Dojo module id.
-            metadata.EditorConfiguration["isJavascriptModule"] = true;
+            // Shared with CategoriesAttribute (the [Categories] path) — both wire the same editor.
+            CategoryEditorMetadata.Apply(metadata, _contentRepositoryDescriptors, _categorySettings);
 
             // Intentionally no `base.ModifyMetadata` call — see class summary.
         }
