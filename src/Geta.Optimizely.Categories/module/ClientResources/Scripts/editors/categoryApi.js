@@ -19,15 +19,33 @@
 //   { id: string, name: string, hasChildren: boolean, typeIdentifier?: string }
 // so the tree/search UI doesn't have to know which raw store fed it.
 
+// Shell/stores base path. Defaults to "/Optimizely/" (CMS 13 default) but is overridden per
+// editor instance via setShellBasePath() from the server-injected `shellBasePath` config, so the
+// built-in stores are still reached when the management UI is served elsewhere — e.g. under
+// OptimizelyIdentity it lives at "/ui/". See issue #56 point 3.
+let SHELL_BASE = "/Optimizely/";
+
+export function setShellBasePath(base) {
+    if (base && typeof base === "string") {
+        SHELL_BASE = base.endsWith("/") ? base : base + "/";
+    }
+}
+
+// Store paths, relative to SHELL_BASE (resolved via storeUrl()).
 const READ = {
-    children:    "/Optimizely/cms/Stores/contentstructure/",
-    search:      "/Optimizely/shell/Stores/searchresults/",
-    resolve:     "/Optimizely/cms/Stores/contentdata/",
-    contentType: "/Optimizely/cms/Stores/contenttype/"
+    children:    "cms/Stores/contentstructure/",
+    search:      "shell/Stores/searchresults/",
+    resolve:     "cms/Stores/contentdata/",
+    contentType: "cms/Stores/contenttype/"
 };
 
-// Package-owned create endpoint (see CategoryEditorController).
+function storeUrl(relative) {
+    return SHELL_BASE + relative;
+}
+
+// Package-owned endpoints (see CategoryEditorController).
 const WRITE_CREATE = "/geta-optimizely-categories/api/Create";
+const READ_SELECTABLE = "/geta-optimizely-categories/api/Selectable";
 
 // Default content-type identifier for the tree filter. Callers can override
 // via opts.typeIdentifier; we keep a constant here so the picker still works
@@ -98,13 +116,24 @@ export async function getChildren(parentId, opts) {
     const params = new URLSearchParams({
         referenceId: String(parentId),
         query: "getchildren",
-        typeIdentifiers: (opts && opts.typeIdentifier) || CATEGORY_TYPE_IDENTIFIER,
         allLanguages: "true"
     });
+    appendTypeIdentifiers(params, opts);
     // The store treats `sort()` as a required dojo-style query directive — empty
     // parens = no sort. Appended raw so URLSearchParams doesn't percent-encode them.
-    const raw = await getJson(READ.children + "?" + params.toString() + "&sort()");
+    const raw = await getJson(storeUrl(READ.children) + "?" + params.toString() + "&sort()");
     return mapContentStructureItems(raw, opts);
+}
+
+// Issue #56 point 7: pass the property's concrete allowed category type identifiers to the store as
+// repeated `typeIdentifiers` params so the tree is filtered polymorphically server-side (a base
+// type matches its subtypes), matching the native content picker. Falls back to the base category
+// type identifier when a property has no explicit [AllowedTypes].
+function appendTypeIdentifiers(params, opts) {
+    const allowed = opts && Array.isArray(opts.allowedTypeIdentifiers) && opts.allowedTypeIdentifiers.length
+        ? opts.allowedTypeIdentifiers
+        : [(opts && opts.typeIdentifier) || CATEGORY_TYPE_IDENTIFIER];
+    allowed.forEach(t => params.append("typeIdentifiers", t));
 }
 
 // ----------------------------------------------------------------------------
@@ -125,7 +154,7 @@ export async function search(query, opts) {
         searchQuery: query
     });
     if (searchRoots) params.set("searchRoots", searchRoots);
-    const raw = await getJson(READ.search + "?" + params.toString());
+    const raw = await getJson(storeUrl(READ.search) + "?" + params.toString());
     return mapSearchResults(raw, opts);
 }
 
@@ -141,7 +170,7 @@ export async function search(query, opts) {
 export async function resolve(id) {
     if (id === null || id === undefined || id === "") return null;
     try {
-        const raw = await getJson(READ.resolve + encodeURIComponent(String(id)));
+        const raw = await getJson(storeUrl(READ.resolve) + encodeURIComponent(String(id)));
         return {
             id: String(raw.contentLink != null ? raw.contentLink : id),
             name: raw.name || ""
@@ -168,7 +197,7 @@ export async function getCreatableTypes(parentId, requestedType) {
         parentReference: String(parentId)
     });
     if (requestedType) params.set("requestedTypes", requestedType);
-    const raw = await getJson(READ.contentType + "?" + params.toString());
+    const raw = await getJson(storeUrl(READ.contentType) + "?" + params.toString());
     const items = pickArray(raw);
     return items.map(t => ({
         id: t.id != null ? t.id : t.contentTypeID,
@@ -207,6 +236,29 @@ export async function create(parentId, name, contentTypeId) {
     }
     const body = await res.json();
     return { id: String(body.contentLink), name: body.name };
+}
+
+// ----------------------------------------------------------------------------
+// selectable — which categories may actually be picked (IsSelectable)
+//
+// Issue #56 point 6: the CMS 13 picker ignores CategoryData.IsSelectable, so "grouping"
+// categories could be assigned. The tree asks the package endpoint which of the loaded ids are
+// selectable and disables the rest. Returns a map { [id]: boolean }; unknown ids default to true.
+
+export async function getSelectable(ids) {
+    const list = (ids || []).map(String).filter(x => x !== "" && x !== "null" && x !== "undefined");
+    if (list.length === 0) return {};
+    try {
+        const raw = await getJson(READ_SELECTABLE + "?ids=" + encodeURIComponent(list.join(",")));
+        const map = {};
+        (Array.isArray(raw) ? raw : []).forEach(r => {
+            if (r && r.id != null) map[String(r.id)] = r.selectable !== false;
+        });
+        return map;
+    } catch (_) {
+        // On error, don't disable anything — never block selection because of a failed lookup.
+        return {};
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -251,14 +303,14 @@ function passesTypeFilter(node, opts) {
     const t = node.typeIdentifier;
     if (!t) return true; // no type info → don't filter out
 
-    // restrictedTypes: explicit blocklist — exact match is fine.
-    if (opts.restrictedTypes && opts.restrictedTypes.includes(t)) return false;
+    // restrictedTypeIdentifiers: explicit blocklist from [AllowedTypes] — exact match is fine.
+    const restricted = opts.restrictedTypeIdentifiers;
+    if (restricted && restricted.includes(t)) return false;
 
-    // NOTE: we deliberately do NOT enforce allowedTypes client-side.
-    // The server's contentstructure / searchresults stores already do a polymorphic
-    // type match via the `typeIdentifiers` query param. Doing exact-string include()
-    // here would drop legitimate subclasses (e.g. CategoryData allowed,
-    // alloy_cms13.models.basiccategory returned — exact include() returns false).
-    // The server is the authoritative filter; we just pass through what it sent.
+    // NOTE: we deliberately do NOT enforce allowedTypes client-side by exact string.
+    // The server's contentstructure / searchresults stores already do a polymorphic type
+    // match via the `typeIdentifiers` query param (see appendTypeIdentifiers), so exact
+    // include() here would wrongly drop legitimate subclasses. The server is the
+    // authoritative allow-filter; we just pass through what it sent.
     return true;
 }

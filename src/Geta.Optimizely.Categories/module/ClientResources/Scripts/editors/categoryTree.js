@@ -83,6 +83,7 @@ export function renderTree(host, roots, opts, selected, onToggle) {
                         renderEmpty(childHost, depth);
                     } else {
                         kids.forEach(k => childHost.appendChild(makeNode(k, depth + 1)));
+                        applySelectability(kids);
                     }
                     loaded = true;
                 } catch (err) {
@@ -94,6 +95,27 @@ export function renderTree(host, roots, opts, selected, onToggle) {
         });
 
         return wrap;
+    }
+
+    // Issue #56 point 6: the CMS 13 shell stores don't expose IsSelectable, so after a level of
+    // nodes is rendered we ask the package endpoint which are selectable and disable the checkboxes
+    // of the ones that are not (they can still be expanded to reach selectable descendants). Never
+    // changes an already-checked value — existing selections are removed via the chips, not here.
+    async function applySelectability(nodes) {
+        const ids = (nodes || []).map(n => n.id);
+        if (ids.length === 0) return;
+        const map = await api.getSelectable(ids);
+        if (destroyed) return;
+        ids.forEach(id => {
+            if (map[String(id)] === false) {
+                const cb = checkboxes.get(id);
+                if (!cb) return;
+                cb.disabled = true;
+                cb.title = "This category is not selectable";
+                const row = cb.closest && cb.closest(".geta-cat-tree__row");
+                if (row) row.classList.add("geta-cat-tree__row--unselectable");
+            }
+        });
     }
 
     (async () => {
@@ -108,6 +130,7 @@ export function renderTree(host, roots, opts, selected, onToggle) {
                 return;
             }
             flat.forEach(n => host.appendChild(makeNode(n, 0)));
+            applySelectability(flat);
         } catch (err) {
             if (!destroyed) {
                 host.innerHTML = "";

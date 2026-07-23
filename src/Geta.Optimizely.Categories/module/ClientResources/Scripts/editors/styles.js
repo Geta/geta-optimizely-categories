@@ -280,6 +280,13 @@ const CSS_TEXT = `
 .geta-cat-tree__row--search {
     cursor: pointer;
 }
+/* Non-selectable ("grouping") categories — IsSelectable == false (issue #56 point 6). */
+.geta-cat-tree__row--unselectable {
+    opacity: .5;
+}
+.geta-cat-tree__row--unselectable .geta-cat-tree__cb {
+    cursor: not-allowed;
+}
 .geta-cat-tree__expander {
     appearance: none;
     background: transparent;

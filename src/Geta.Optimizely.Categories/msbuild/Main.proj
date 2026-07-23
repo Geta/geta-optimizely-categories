@@ -62,9 +62,16 @@
       <BuildAction>None</BuildAction>
       <PackageCopyToOutput>true</PackageCopyToOutput>
     </Content>
+    <!--
+      Ship the module-copy target under buildTransitive/ (not build/) so it also runs when the
+      package is referenced transitively (e.g. from a class library, with the web project getting
+      it indirectly). build/ assets only import into the project that references the package
+      directly. See issue #56 point 1. The net10.0 TFM sub-folder keeps CopyZipFiles.targets two
+      levels below the package root, so its "..\..\contentFiles" relative path stays valid.
+    -->
     <Content Include="$(SolutionDir)\src\$(MSBuildProjectName)\msbuild\CopyZipFiles.targets" >
       <Pack>true</Pack>
-      <PackagePath>build\net5.0\$(MSBuildProjectName).targets</PackagePath>
+      <PackagePath>buildTransitive\net10.0\$(MSBuildProjectName).targets</PackagePath>
     </Content>
   </ItemGroup>
 </Project>

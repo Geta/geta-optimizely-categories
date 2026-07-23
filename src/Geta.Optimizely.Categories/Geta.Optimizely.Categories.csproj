@@ -19,6 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Geta.Optimizely.Categories.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EPiServer.CMS.AspNetCore" Version="13.1.0" />
     <PackageReference Include="EPiServer.CMS.AspNetCore.Routing" Version="13.1.0" />
     <PackageReference Include="EPiServer.CMS.UI.Core" Version="13.1.0" />
