@@ -130,9 +130,10 @@ export async function getChildren(parentId, opts) {
 // type matches its subtypes), matching the native content picker. Falls back to the base category
 // type identifier when a property has no explicit [AllowedTypes].
 function appendTypeIdentifiers(params, opts) {
-    const allowed = opts && Array.isArray(opts.allowedTypeIdentifiers) && opts.allowedTypeIdentifiers.length
-        ? opts.allowedTypeIdentifiers
-        : [(opts && opts.typeIdentifier) || CATEGORY_TYPE_IDENTIFIER];
+    const declared = opts?.allowedTypeIdentifiers;
+    const allowed = Array.isArray(declared) && declared.length
+        ? declared
+        : [opts?.typeIdentifier || CATEGORY_TYPE_IDENTIFIER];
     allowed.forEach(t => params.append("typeIdentifiers", t));
 }
 
@@ -256,11 +257,13 @@ export async function getSelectable(ids) {
         const raw = await getJson(READ_SELECTABLE + "?ids=" + encodeURIComponent(list.join(",")));
         const map = {};
         (Array.isArray(raw) ? raw : []).forEach(r => {
-            if (r && r.id != null) map[String(r.id)] = r.selectable !== false;
+            if (r?.id != null) map[String(r.id)] = r.selectable !== false;
         });
         return map;
-    } catch (_) {
+    } catch (err) {
         // On error, don't disable anything — never block selection because of a failed lookup.
+        // Log it (not silently swallowed) so a broken endpoint is still diagnosable.
+        console.warn("Geta categories: selectability lookup failed; treating all as selectable.", err);
         return {};
     }
 }
@@ -309,7 +312,7 @@ function passesTypeFilter(node, opts) {
 
     // restrictedTypeIdentifiers: explicit blocklist from [AllowedTypes] — exact match is fine.
     const restricted = opts.restrictedTypeIdentifiers;
-    if (restricted && restricted.includes(t)) return false;
+    if (restricted?.includes(t)) return false;
 
     // NOTE: we deliberately do NOT enforce allowedTypes client-side by exact string.
     // The server's contentstructure / searchresults stores already do a polymorphic type

@@ -112,8 +112,7 @@ export function renderTree(host, roots, opts, selected, onToggle) {
                 if (!cb) return;
                 cb.disabled = true;
                 cb.title = "This category is not selectable";
-                const row = cb.closest && cb.closest(".geta-cat-tree__row");
-                if (row) row.classList.add("geta-cat-tree__row--unselectable");
+                cb.closest?.(".geta-cat-tree__row")?.classList.add("geta-cat-tree__row--unselectable");
             }
         });
     }

@@ -321,7 +321,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
 
         let results;
         try {
-            results = await api.search(q, Object.assign({ searchRoots: roots }, typeOpts));
+            results = await api.search(q, { searchRoots: roots, ...typeOpts });
         } catch (err) {
             host.innerHTML = "";
             const e = document.createElement("div");
@@ -361,9 +361,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
                 if (cb) {
                     cb.disabled = true;
                     cb.title = "This category is not selectable";
-                    if (cb.parentNode && cb.parentNode.classList) {
-                        cb.parentNode.classList.add("geta-cat-tree__row--unselectable");
-                    }
+                    cb.parentNode?.classList?.add("geta-cat-tree__row--unselectable");
                 }
             }
         });
