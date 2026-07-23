@@ -23,11 +23,18 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     injectCategoryEditorStyles();
 
     const cfg = widgetSettings || {};
+
+    // Issue #56 point 3: address the built-in CMS stores relative to the server-resolved shell base
+    // (e.g. "/Optimizely/" or "/ui/" under OptimizelyIdentity) instead of a hardcoded literal.
+    api.setShellBasePath(cfg.shellBasePath);
+
     const labels = readLabels(cfg);
     const roots = extractRoots(cfg);
     const typeOpts = {
-        allowedTypes: cfg.allowedTypes,
-        restrictedTypes: cfg.restrictedTypes
+        // Issue #56 point 7: concrete allowed/restricted category type identifiers, passed to the
+        // stores so the tree/search are filtered to the property's [AllowedTypes].
+        allowedTypeIdentifiers: cfg.allowedTypeIdentifiers,
+        restrictedTypeIdentifiers: cfg.restrictedTypeIdentifiers
     };
 
     let ids = toIds(initialValue);
@@ -314,11 +321,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
 
         let results;
         try {
-            results = await api.search(q, {
-                searchRoots: roots,
-                allowedTypes: typeOpts.allowedTypes,
-                restrictedTypes: typeOpts.restrictedTypes
-            });
+            results = await api.search(q, { searchRoots: roots, ...typeOpts });
         } catch (err) {
             host.innerHTML = "";
             const e = document.createElement("div");
@@ -338,7 +341,30 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             host.appendChild(empty);
             return;
         }
-        results.forEach(r => host.appendChild(buildSearchRow(r)));
+        const rowCheckboxes = new Map();
+        results.forEach(r => {
+            const built = buildSearchRow(r);
+            rowCheckboxes.set(String(r.id), built.cb);
+            host.appendChild(built.row);
+        });
+        applySearchSelectability(results.map(r => r.id), rowCheckboxes);
+    }
+
+    // Issue #56 point 6: disable non-selectable categories in the search results too, mirroring the
+    // tree. Best-effort — a failed lookup leaves everything selectable.
+    async function applySearchSelectability(ids, rowCheckboxes) {
+        const map = await api.getSelectable(ids);
+        if (destroyed) return;
+        ids.forEach(id => {
+            if (map[String(id)] === false) {
+                const cb = rowCheckboxes.get(String(id));
+                if (cb) {
+                    cb.disabled = true;
+                    cb.title = "This category is not selectable";
+                    cb.parentNode?.classList?.add("geta-cat-tree__row--unselectable");
+                }
+            }
+        });
     }
 
     function buildSearchRow(r) {
@@ -356,7 +382,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         label.textContent = r.name || ("#" + r.id);
 
         row.append(cb, label);
-        return row;
+        return { row, cb };
     }
 
     // --- init -----------------------------------------------------------------

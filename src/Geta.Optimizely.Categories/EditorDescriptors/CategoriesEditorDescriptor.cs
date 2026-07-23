@@ -39,7 +39,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         public override void ModifyMetadata(ExtendedMetadata metadata, IEnumerable<Attribute> attributes)
         {
             // Shared with CategoriesAttribute (the [Categories] path) — both wire the same editor.
-            CategoryEditorMetadata.Apply(metadata, _contentRepositoryDescriptors, _categorySettings);
+            // Pass the property attributes so the editor honours [AllowedTypes] (issue #56 point 7).
+            CategoryEditorMetadata.Apply(metadata, _contentRepositoryDescriptors, _categorySettings, attributes);
 
             // Intentionally no `base.ModifyMetadata` call — see class summary.
         }

@@ -10,5 +10,13 @@ namespace Geta.Optimizely.Categories.Configuration
         public bool DisableCategoryAsLinkableType { get; set; }
         public bool HideDisallowedRootCategories { get; set; }
         public bool ShowDefaultCategoryProperty { get; set; }
+
+        /// <summary>
+        /// Comma-separated authentication scheme(s) used to authorize the category editor endpoints
+        /// (the "Create category" API). Leave empty to use the application's default authenticate/
+        /// challenge scheme. Set this when there is no global default scheme for the app-root path —
+        /// e.g. under OptimizelyIdentity — to the CMS editor cookie scheme(s). See issue #56 point 4.
+        /// </summary>
+        public string EditorAuthenticationSchemes { get; set; } = string.Empty;
     }
 }

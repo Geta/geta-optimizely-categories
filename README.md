@@ -114,6 +114,8 @@ This is a **source-only** change — stored category references are not affected
   - Allows you to show the default Episerver category property
 - UseUrlPathForCategoryRetrieval - default to **false**
   - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
+- EditorAuthenticationSchemes - defaults to **empty**
+  - Comma-separated authentication scheme(s) used to authorize the category editor endpoints (the "Create category" API). Leave empty to use the application's default authenticate/challenge scheme. Set this when there is no global default scheme for the app-root path — e.g. under **OptimizelyIdentity** — to the CMS editor cookie scheme(s).
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
@@ -133,7 +135,8 @@ In addition, the configuration can be read from the `appsettings.json`:
       "DisableCategoryAsLinkableType": false,
       "HideDisallowedRootCategories": false,
       "ShowDefaultCategoryProperty": false,
-      "UseUrlPathForCategoryRetrieval": false
+      "UseUrlPathForCategoryRetrieval": false,
+      "EditorAuthenticationSchemes": ""
     }
 }
 ```

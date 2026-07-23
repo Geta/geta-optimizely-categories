@@ -24,5 +24,18 @@ namespace Geta.Optimizely.Categories.Editors
     {
         public string ContentLink { get; set; }
         public string Name { get; set; }
+
+        /// <summary>
+        /// True when the category was published; false when it was saved as a draft because the
+        /// content type has [Required] properties the quick-create dialog could not fill.
+        /// </summary>
+        public bool Published { get; set; }
+    }
+
+    /// <summary>Per-category selectability, returned by <see cref="CategoryEditorController.Selectable"/>.</summary>
+    public class CategorySelectableResponse
+    {
+        public string Id { get; set; }
+        public bool Selectable { get; set; }
     }
 }
