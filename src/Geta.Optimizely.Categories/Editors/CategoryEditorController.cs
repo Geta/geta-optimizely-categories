@@ -48,10 +48,11 @@ namespace Geta.Optimizely.Categories.Editors
             ((IContent)category).Name = request.Name;
 
             // Issue #56 point 5: quick-create only supplies Name, so a category type with a
-            // [Required] custom property would fail publish-time validation. Try to publish; if a
-            // required property blocks it, fall back to saving a draft so creation still succeeds —
-            // the editor then fills the required fields in the full edit form. The response reports
-            // whether the category was published so the picker can surface that if it wants to.
+            // [Required] custom property would fail validation. Try to publish; if a required
+            // property blocks it, fall back to saving an unpublished draft with SkipValidation
+            // (validation runs on a plain Save too, so it must be skipped) — creation still
+            // succeeds and the editor completes the required fields in the full edit form before
+            // publishing. The response reports whether the category was published.
             ContentReference savedLink;
             bool published;
             try
@@ -61,7 +62,7 @@ namespace Geta.Optimizely.Categories.Editors
             }
             catch (ValidationException)
             {
-                savedLink = _contentRepository.Save(category, SaveAction.Save, AccessLevel.Edit);
+                savedLink = _contentRepository.Save(category, SaveAction.Save | SaveAction.SkipValidation, AccessLevel.Edit);
                 published = false;
             }
 

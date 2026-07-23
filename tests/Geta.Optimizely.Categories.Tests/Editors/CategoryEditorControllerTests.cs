@@ -69,7 +69,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
                 .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Publish, AccessLevel.Edit))
                 .Throws(new ValidationException("Property 'Label' is required."));
             repo
-                .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Save, AccessLevel.Edit))
+                .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Save | SaveAction.SkipValidation, AccessLevel.Edit))
                 .Returns(new ContentReference(77));
 
             var controller = new CategoryEditorController(repo.Object);
@@ -88,7 +88,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             Assert.False(body.Published);
 
             repo.Verify(r => r.Save(category, SaveAction.Publish, AccessLevel.Edit), Times.Once);
-            repo.Verify(r => r.Save(category, SaveAction.Save, AccessLevel.Edit), Times.Once);
+            repo.Verify(r => r.Save(category, SaveAction.Save | SaveAction.SkipValidation, AccessLevel.Edit), Times.Once);
         }
 
         [Theory]

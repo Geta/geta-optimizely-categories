@@ -142,7 +142,7 @@ function appendTypeIdentifiers(params, opts) {
 /**
  * Free-text search scoped to one or more roots.
  * @param {string} query
- * @param {object} [opts]  { searchRoots?: string|string[], allowedTypes?, restrictedTypes? }
+ * @param {object} [opts]  { searchRoots?: string|string[], allowedTypeIdentifiers?, restrictedTypeIdentifiers? }
  * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean,typeIdentifier?:string}>>}
  */
 export async function search(query, opts) {
@@ -154,6 +154,10 @@ export async function search(query, opts) {
         searchQuery: query
     });
     if (searchRoots) params.set("searchRoots", searchRoots);
+    // Issue #56 point 7: filter search results by the property's [AllowedTypes] the same way the
+    // tree does (getChildren) — the searchresults store honours repeated typeIdentifiers params, so
+    // the allow-filter stays server-side and polymorphic instead of an unreliable client string match.
+    appendTypeIdentifiers(params, opts);
     const raw = await getJson(storeUrl(READ.search) + "?" + params.toString());
     return mapSearchResults(raw, opts);
 }

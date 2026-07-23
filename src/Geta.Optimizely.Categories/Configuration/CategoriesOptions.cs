@@ -17,6 +17,6 @@ namespace Geta.Optimizely.Categories.Configuration
         /// challenge scheme. Set this when there is no global default scheme for the app-root path —
         /// e.g. under OptimizelyIdentity — to the CMS editor cookie scheme(s). See issue #56 point 4.
         /// </summary>
-        public string EditorAuthenticationSchemes { get; set; }
+        public string EditorAuthenticationSchemes { get; set; } = string.Empty;
     }
 }
