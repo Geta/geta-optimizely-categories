@@ -138,8 +138,8 @@ export async function getChildren(parentId, opts) {
 // GetChildrenQuery restricts children to the requested type, so intermediate "container" categories
 // are dropped from the tree and every allowed category nested underneath becomes unreachable. For a
 // hierarchy like
-//     Categories root -> LiftCategory (container) -> BusinessAreaCategory
-// asking for BusinessAreaCategory returns nothing at the root and the picker renders empty.
+//     categories root -> grouping category (a different type) -> the allowed category type
+// asking for the allowed type alone returns nothing at the root, and the picker renders empty.
 //
 // Nor is there a combination that works: including an ancestor type so the container survives
 // re-admits every sibling type, because the store matches via the item's whole descriptor ancestor
