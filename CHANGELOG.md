@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+`[AllowedTypes]` is now actually enforced by the category picker. The 2.1.0 change for [#56](https://github.com/Geta/geta-optimizely-categories/issues/56) point 7 did not take effect — two separate defects:
+
+- The property's `[AllowedTypes]` never reached the editor on the `[Categories]` attribute path. CMS's `ExtensibleMetadataProvider.ApplyMetadataAwareAttributes` builds the `DisplayMetadataProviderContext` from `ModelAttributes.GetAttributesForType(metadata.GetType())` — the attributes of the `ExtendedMetadata` class, not of the property — so `context.Attributes` never contained `AllowedTypesAttribute` and the picker silently fell back to "all category types". `RestrictedTypes` was affected the same way. Attributes are now read from `ExtendedMetadata.Attributes`, which is the property's own set on both wiring paths.
+- The allow-list is no longer delegated to the shell store's `typeIdentifiers` parameter. That parameter *filters* rather than *marks*, so narrowing it removed intermediate "container" categories from the tree and made every allowed category nested underneath unreachable — for a `root -> container -> allowed category` hierarchy the picker rendered completely empty. Allowed and restricted types are now evaluated per node by the `Selectable` endpoint and disallowed nodes are **disabled but still shown and expandable**, matching how the native content picker greys restricted types instead of hiding them.
+
+As a result the allow-list is now also applied to **search results**, which were never type-filtered at all: `SearchResultStore` does not bind a `typeIdentifiers` parameter, so the values the client sent were silently discarded.
+
+Other changes:
+
+- `Selectable` accepts optional `allowedTypes` / `restrictedTypes` type identifiers and returns a `reason` (`notSelectable` / `typeNotAllowed`) so the picker can explain why a row is disabled. Type matching is polymorphic via `UIDescriptorRegistry.HasMatchedTypeIdentifier` — a base type matches all its subtypes, the same semantics as `AllowedTypesAttribute`'s publish-time validation.
+- Restricted category types are now disabled rather than removed from the tree/search, for the same hierarchy reason as above.
+- `EditorConfiguration["AllowedTypes"]` / `["AllowedDndTypes"]` now hold type identifier strings instead of `System.Type` instances, matching the CMS convention for those keys.
+
 ## [2.1.0] - 2026-07-23
 
 ### Fixed

@@ -12,8 +12,14 @@
 //       &parameters=%7B%22filterOnDeleted%22%3Atrue%7D&filterOnCulture=false
 //   GET /Optimizely/cms/Stores/contentdata/<id>
 //
-// WRITE path (category creation) will hit a package-owned endpoint added in
-// Task 11 — not implemented in this file yet.
+// Package-owned endpoints:
+//
+//   POST /geta-optimizely-categories/api/Create
+//   GET  /geta-optimizely-categories/api/Selectable?ids=<ids>&allowedTypes=<ids>&restrictedTypes=<ids>
+//
+// The stores decide WHICH categories the tree and search return; the Selectable endpoint decides
+// which of them may be PICKED (IsSelectable plus the property's [AllowedTypes]). Keeping those two
+// concerns apart is deliberate — see appendBaseTypeIdentifier.
 //
 // All read functions return data in the editor's internal node shape:
 //   { id: string, name: string, hasChildren: boolean, typeIdentifier?: string }
@@ -109,7 +115,8 @@ function readContentLanguage() {
 /**
  * Fetch direct children of a parent content node.
  * @param {string} parentId   Content-link id (e.g. "108")
- * @param {object} [opts]     { typeIdentifier?, allowedTypes?, restrictedTypes? }
+ * @param {object} [opts]     { typeIdentifier? } — the base category type to list. Allowed/restricted
+ *                            types are NOT applied here; see appendBaseTypeIdentifier.
  * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean,typeIdentifier?:string}>>}
  */
 export async function getChildren(parentId, opts) {
@@ -118,23 +125,32 @@ export async function getChildren(parentId, opts) {
         query: "getchildren",
         allLanguages: "true"
     });
-    appendTypeIdentifiers(params, opts);
+    appendBaseTypeIdentifier(params, opts);
     // The store treats `sort()` as a required dojo-style query directive — empty
     // parens = no sort. Appended raw so URLSearchParams doesn't percent-encode them.
     const raw = await getJson(storeUrl(READ.children) + "?" + params.toString() + "&sort()");
-    return mapContentStructureItems(raw, opts);
+    return mapContentStructureItems(raw);
 }
 
-// Issue #56 point 7: pass the property's concrete allowed category type identifiers to the store as
-// repeated `typeIdentifiers` params so the tree is filtered polymorphically server-side (a base
-// type matches its subtypes), matching the native content picker. Falls back to the base category
-// type identifier when a property has no explicit [AllowedTypes].
-function appendTypeIdentifiers(params, opts) {
-    const declared = opts?.allowedTypeIdentifiers;
-    const allowed = Array.isArray(declared) && declared.length
-        ? declared
-        : [opts?.typeIdentifier || CATEGORY_TYPE_IDENTIFIER];
-    allowed.forEach(t => params.append("typeIdentifiers", t));
+// Always the BASE category type — never the property's concrete [AllowedTypes] (issue #56 point 7).
+//
+// It is tempting to narrow the store query instead, but the store *filters* rather than *marks*:
+// GetChildrenQuery restricts children to the requested type, so intermediate "container" categories
+// are dropped from the tree and every allowed category nested underneath becomes unreachable. For a
+// hierarchy like
+//     Categories root -> LiftCategory (container) -> BusinessAreaCategory
+// asking for BusinessAreaCategory returns nothing at the root and the picker renders empty.
+//
+// Nor is there a combination that works: including an ancestor type so the container survives
+// re-admits every sibling type, because the store matches via the item's whole descriptor ancestor
+// chain (DefaultContentQueryHelper.FilterTypeIdentifier -> UIDescriptorRegistry.HasMatchedTypeIdentifier).
+// Restricting the leaves and exposing the containers are mutually exclusive through that parameter.
+//
+// So we keep the tree complete and enforce the allow-list per node by *disabling* it, via the
+// Selectable endpoint — the same "grey, don't hide" approach as the native picker (ContentTree with
+// disableRestrictedTypes). That also keeps a single code path for the tree and for search.
+function appendBaseTypeIdentifier(params, opts) {
+    params.append("typeIdentifiers", opts?.typeIdentifier || CATEGORY_TYPE_IDENTIFIER);
 }
 
 // ----------------------------------------------------------------------------
@@ -143,7 +159,7 @@ function appendTypeIdentifiers(params, opts) {
 /**
  * Free-text search scoped to one or more roots.
  * @param {string} query
- * @param {object} [opts]  { searchRoots?: string|string[], allowedTypeIdentifiers?, restrictedTypeIdentifiers? }
+ * @param {object} [opts]  { searchRoots?: string|string[] }
  * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean,typeIdentifier?:string}>>}
  */
 export async function search(query, opts) {
@@ -155,12 +171,13 @@ export async function search(query, opts) {
         searchQuery: query
     });
     if (searchRoots) params.set("searchRoots", searchRoots);
-    // Issue #56 point 7: filter search results by the property's [AllowedTypes] the same way the
-    // tree does (getChildren) — the searchresults store honours repeated typeIdentifiers params, so
-    // the allow-filter stays server-side and polymorphic instead of an unreliable client string match.
-    appendTypeIdentifiers(params, opts);
+    // No `typeIdentifiers` here on purpose: EPiServer.Shell.UI.Rest.SearchResultStore binds only
+    // searchQuery / parameters / searchRoots / providerId / filterOnCulture / contentSearch, so any
+    // type identifiers we sent were silently dropped and search was never type-filtered at all.
+    // Type enforcement for search happens the same way as for the tree — the caller disables
+    // disallowed hits via getSelectable().
     const raw = await getJson(storeUrl(READ.search) + "?" + params.toString());
-    return mapSearchResults(raw, opts);
+    return mapSearchResults(raw);
 }
 
 // ----------------------------------------------------------------------------
@@ -244,20 +261,31 @@ export async function create(parentId, name, contentTypeId) {
 }
 
 // ----------------------------------------------------------------------------
-// selectable — which categories may actually be picked (IsSelectable)
+// selectable — which categories may actually be picked
 //
-// Issue #56 point 6: the CMS 13 picker ignores CategoryData.IsSelectable, so "grouping"
-// categories could be assigned. The tree asks the package endpoint which of the loaded ids are
-// selectable and disables the rest. Returns a map { [id]: boolean }; unknown ids default to true.
+// The CMS 13 picker enforces neither CategoryData.IsSelectable (issue #56 point 6) nor the property's
+// [AllowedTypes] (point 7), so both gates are evaluated here, server-side, in one round trip per
+// rendered level. Keeping the type check on the server means the polymorphic match is done by
+// UIDescriptorRegistry — authoritative, and no need to model the type hierarchy in the client.
+//
+// Returns a map { [id]: { selectable: boolean, reason: string|null } }; unknown ids default to
+// selectable.
 
-export async function getSelectable(ids) {
+export async function getSelectable(ids, opts) {
     const list = (ids || []).map(String).filter(x => x !== "" && x !== "null" && x !== "undefined");
     if (list.length === 0) return {};
+    const params = new URLSearchParams({ ids: list.join(",") });
+    const allowed = opts?.allowedTypeIdentifiers;
+    const restricted = opts?.restrictedTypeIdentifiers;
+    if (Array.isArray(allowed) && allowed.length) params.set("allowedTypes", allowed.join(","));
+    if (Array.isArray(restricted) && restricted.length) params.set("restrictedTypes", restricted.join(","));
     try {
-        const raw = await getJson(READ_SELECTABLE + "?ids=" + encodeURIComponent(list.join(",")));
+        const raw = await getJson(READ_SELECTABLE + "?" + params.toString());
         const map = {};
         (Array.isArray(raw) ? raw : []).forEach(r => {
-            if (r?.id != null) map[String(r.id)] = r.selectable !== false;
+            if (r?.id != null) {
+                map[String(r.id)] = { selectable: r.selectable !== false, reason: r.reason || null };
+            }
         });
         return map;
     } catch (err) {
@@ -268,34 +296,40 @@ export async function getSelectable(ids) {
     }
 }
 
-// ----------------------------------------------------------------------------
-// shape mapping + type filtering
-
-function mapContentStructureItems(raw, opts) {
-    const items = pickArray(raw);
-    return items
-        .map(i => ({
-            id: String(i.contentLink != null ? i.contentLink : i.id),
-            name: i.name,
-            hasChildren: !!(i.hasChildren != null ? i.hasChildren : i.hasChildLinks),
-            typeIdentifier: i.typeIdentifier || i.contentTypeName || null
-        }))
-        .filter(n => passesTypeFilter(n, opts));
+// Human-readable tooltip for a disabled row, keyed off the endpoint's reason code.
+export function selectabilityMessage(reason) {
+    if (reason === "typeNotAllowed") return "This category type cannot be selected for this property";
+    return "This category is not selectable";
 }
 
-function mapSearchResults(raw, opts) {
+// ----------------------------------------------------------------------------
+// shape mapping
+
+// Note: neither mapper filters by type any more. Removing a node also removes the path to its
+// descendants, which silently hides allowed categories nested under a disallowed container. Type
+// enforcement is a per-node *disable* instead — see getSelectable().
+
+function mapContentStructureItems(raw) {
     const items = pickArray(raw);
-    return items
-        .map(i => {
-            const meta = i.metadata || {};
-            return {
-                id: String(meta.id != null ? meta.id : i.id),
-                name: i.title || i.name || "",
-                hasChildren: false, // search hits are leaves in the picker
-                typeIdentifier: meta.typeIdentifier || null
-            };
-        })
-        .filter(n => passesTypeFilter(n, opts));
+    return items.map(i => ({
+        id: String(i.contentLink != null ? i.contentLink : i.id),
+        name: i.name,
+        hasChildren: !!(i.hasChildren != null ? i.hasChildren : i.hasChildLinks),
+        typeIdentifier: i.typeIdentifier || i.contentTypeName || null
+    }));
+}
+
+function mapSearchResults(raw) {
+    const items = pickArray(raw);
+    return items.map(i => {
+        const meta = i.metadata || {};
+        return {
+            id: String(meta.id != null ? meta.id : i.id),
+            name: i.title || i.name || "",
+            hasChildren: false, // search hits are leaves in the picker
+            typeIdentifier: meta.typeIdentifier || null
+        };
+    });
 }
 
 function pickArray(raw) {
@@ -305,19 +339,3 @@ function pickArray(raw) {
     return [];
 }
 
-function passesTypeFilter(node, opts) {
-    if (!opts) return true;
-    const t = node.typeIdentifier;
-    if (!t) return true; // no type info → don't filter out
-
-    // restrictedTypeIdentifiers: explicit blocklist from [AllowedTypes] — exact match is fine.
-    const restricted = opts.restrictedTypeIdentifiers;
-    if (restricted?.includes(t)) return false;
-
-    // NOTE: we deliberately do NOT enforce allowedTypes client-side by exact string.
-    // The server's contentstructure / searchresults stores already do a polymorphic type
-    // match via the `typeIdentifiers` query param (see appendTypeIdentifiers), so exact
-    // include() here would wrongly drop legitimate subclasses. The server is the
-    // authoritative allow-filter; we just pass through what it sent.
-    return true;
-}

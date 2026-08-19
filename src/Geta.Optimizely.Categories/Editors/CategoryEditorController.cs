@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.DataAccess;
 using EPiServer.Security;
+using EPiServer.Shell;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,11 +25,21 @@ namespace Geta.Optimizely.Categories.Editors
     [Route("geta-optimizely-categories/api/[action]")]
     public class CategoryEditorController : ControllerBase
     {
-        private readonly IContentRepository _contentRepository;
+        /// <summary>Reported when <see cref="CategoryData.IsSelectable"/> is false.</summary>
+        public const string NotSelectableReason = "notSelectable";
 
-        public CategoryEditorController(IContentRepository contentRepository)
+        /// <summary>Reported when the category's type is outside the property's [AllowedTypes].</summary>
+        public const string TypeNotAllowedReason = "typeNotAllowed";
+
+        private readonly IContentRepository _contentRepository;
+        private readonly UIDescriptorRegistry _uiDescriptorRegistry;
+
+        public CategoryEditorController(
+            IContentRepository contentRepository,
+            UIDescriptorRegistry uiDescriptorRegistry)
         {
             _contentRepository = contentRepository;
+            _uiDescriptorRegistry = uiDescriptorRegistry;
         }
 
         [HttpPost]
@@ -75,32 +87,90 @@ namespace Geta.Optimizely.Categories.Editors
         }
 
         /// <summary>
-        /// Reports which of the given categories are selectable (<see cref="CategoryData.IsSelectable"/>).
-        /// Issue #56 point 6: the CMS 13 picker does not consult IsSelectable, so the client uses this
-        /// to disable selection of "grouping" categories. Unknown / non-category ids report selectable
-        /// so the picker never over-restricts.
+        /// Reports which of the given categories may be picked, combining both gates the CMS 13 picker
+        /// applies to nothing on its own:
+        /// <list type="bullet">
+        /// <item><description><see cref="CategoryData.IsSelectable"/> — issue #56 point 6.</description></item>
+        /// <item><description>the property's <c>[AllowedTypes]</c> / <c>RestrictedTypes</c>, matched
+        /// polymorphically — issue #56 point 7.</description></item>
+        /// </list>
+        /// Unknown / non-category ids report selectable so the picker never over-restricts.
         /// </summary>
+        /// <param name="ids">Comma-separated content-link ids to evaluate.</param>
+        /// <param name="allowedTypes">
+        /// Comma-separated allowed type identifiers (lower-cased full names). Empty means "any category
+        /// type". A category matches when the identifier belongs to the type or to any of its base
+        /// types, so passing a base type allows all its subtypes — the same semantics as
+        /// <c>AllowedTypesAttribute</c>'s publish-time validation.
+        /// </param>
+        /// <param name="restrictedTypes">Comma-separated restricted type identifiers; matched the same way and applied first.</param>
         [HttpGet]
-        public IActionResult Selectable([FromQuery] string ids)
+        public IActionResult Selectable(
+            [FromQuery] string ids,
+            [FromQuery] string allowedTypes = null,
+            [FromQuery] string restrictedTypes = null)
         {
             var result = new List<CategorySelectableResponse>();
 
-            if (!string.IsNullOrWhiteSpace(ids))
+            if (string.IsNullOrWhiteSpace(ids))
             {
-                foreach (var idPart in ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                {
-                    var selectable = true;
-                    if (ContentReference.TryParse(idPart, out var link) && !ContentReference.IsNullOrEmpty(link)
-                        && _contentRepository.TryGet<CategoryData>(link, out var category))
-                    {
-                        selectable = category.IsSelectable;
-                    }
+                return Ok(result);
+            }
 
-                    result.Add(new CategorySelectableResponse { Id = idPart, Selectable = selectable });
+            var allowed = SplitIdentifiers(allowedTypes);
+            var restricted = SplitIdentifiers(restrictedTypes);
+
+            foreach (var idPart in ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var response = new CategorySelectableResponse { Id = idPart, Selectable = true };
+
+                if (ContentReference.TryParse(idPart, out var link) && !ContentReference.IsNullOrEmpty(link)
+                    && _contentRepository.TryGet<CategoryData>(link, out var category))
+                {
+                    if (!category.IsSelectable)
+                    {
+                        response.Selectable = false;
+                        response.Reason = NotSelectableReason;
+                    }
+                    else if (!IsTypeAllowed(category.GetType(), allowed, restricted))
+                    {
+                        response.Selectable = false;
+                        response.Reason = TypeNotAllowedReason;
+                    }
                 }
+
+                result.Add(response);
             }
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Polymorphic type match against the property's allowed/restricted type identifiers.
+        /// <see cref="UIDescriptorRegistry.HasMatchedTypeIdentifier"/> walks the type's whole descriptor
+        /// ancestor chain, which is the same matching CMS itself applies in
+        /// <c>DefaultContentQueryHelper.FilterTypeIdentifier</c>, so a base identifier matches every
+        /// subtype without the package having to know the hierarchy.
+        /// </summary>
+        private bool IsTypeAllowed(Type categoryType, string[] allowed, string[] restricted)
+        {
+            if (restricted.Length > 0 && _uiDescriptorRegistry.HasMatchedTypeIdentifier(categoryType, restricted))
+            {
+                return false;
+            }
+
+            // No declared allow-list → every category type is fine.
+            return allowed.Length == 0 || _uiDescriptorRegistry.HasMatchedTypeIdentifier(categoryType, allowed);
+        }
+
+        private static string[] SplitIdentifiers(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? Array.Empty<string>()
+                : value
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(x => x.ToLowerInvariant())
+                    .ToArray();
         }
     }
 }
