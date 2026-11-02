@@ -2,3 +2,5 @@
 	path = sub/geta-foundation-core
 	url = https://github.com/Geta/geta-foundation-core
 	branch = upgrade/cms-13-dot-1
+	# The sandbox build copies the package's module zip into the foundation's modules folder.
+	ignore = untracked

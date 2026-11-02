@@ -13,4 +13,39 @@
   </ItemGroup>
 
   <Import Project="modules\ModulesInclude.proj"/>
+
+  <!--
+    Keep the sandbox's Geta.Optimizely.Categories module in sync with the package build.
+    The package project zips module/ (module.config + ClientResources) into its output folder on
+    every build. Copy that zip to:
+      - the foundation content root (Program.cs uses it as content root, so this is where CMS
+        actually loads protected modules from at runtime), and
+      - this project's modules folder (what CopyingFoundationModulesFromBuildToPublishFolder publishes).
+    Restart the sandbox after building: CMS reads module zips at startup.
+  -->
+  <PropertyGroup>
+    <FoundationContentRoot>$(MSBuildProjectDirectory)\..\..\sub\geta-foundation-core\src\Foundation\</FoundationContentRoot>
+  </PropertyGroup>
+
+  <Target Name="SyncCategoriesModuleZip" AfterTargets="Build">
+    <MSBuild Projects="..\Geta.Optimizely.Categories\Geta.Optimizely.Categories.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_CategoriesTargetPath" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_CategoriesModuleZip Include="@(_CategoriesTargetPath->'%(RootDir)%(Directory)Geta.Optimizely.Categories.zip')" />
+    </ItemGroup>
+
+    <Error Condition="!Exists('@(_CategoriesModuleZip)')"
+           Text="Geta.Optimizely.Categories module zip not found at '@(_CategoriesModuleZip)'. Build the package project first." />
+
+    <Copy SourceFiles="@(_CategoriesModuleZip)"
+          DestinationFolder="$(FoundationContentRoot)modules\_protected\Geta.Optimizely.Categories" />
+    <Copy SourceFiles="@(_CategoriesModuleZip)"
+          DestinationFolder="$(MSBuildProjectDirectory)\modules\_protected\Geta.Optimizely.Categories" />
+
+    <Message Importance="high" Text="Synced Geta.Optimizely.Categories module zip to the sandbox: @(_CategoriesModuleZip)" />
+  </Target>
 </Project>
