@@ -37,5 +37,13 @@ namespace Geta.Optimizely.Categories.Editors
     {
         public string Id { get; set; }
         public bool Selectable { get; set; }
+
+        /// <summary>
+        /// Why the category is not selectable, so the picker can show a meaningful tooltip:
+        /// <see cref="CategoryEditorController.NotSelectableReason"/> (IsSelectable is off) or
+        /// <see cref="CategoryEditorController.TypeNotAllowedReason"/> (the type is outside the
+        /// property's [AllowedTypes]). Null when the category is selectable.
+        /// </summary>
+        public string Reason { get; set; }
     }
 }

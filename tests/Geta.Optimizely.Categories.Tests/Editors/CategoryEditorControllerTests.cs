@@ -8,8 +8,10 @@ using EPiServer;
 using EPiServer.Core;
 using EPiServer.DataAccess;
 using EPiServer.Security;
+using EPiServer.Shell;
 using Geta.Optimizely.Categories.Editors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -17,6 +19,27 @@ namespace Geta.Optimizely.Categories.Tests.Editors
 {
     public class CategoryEditorControllerTests
     {
+        // UIDescriptorRegistry.HasMatchedTypeIdentifier is public virtual, so it can be stubbed.
+        // We stub rather than build real UIDescriptors because UIDescriptor's public constructor
+        // resolves ViewConfigurations / IContentTypeRepository through ServiceLocator. The polymorphic
+        // ancestor-chain matching itself is CMS's contract (and the same call CMS's own
+        // DefaultContentQueryHelper.FilterTypeIdentifier makes), so these tests cover the controller's
+        // own logic: which gate wins, and which reason is reported.
+        private static Mock<UIDescriptorRegistry> CreateRegistry()
+        {
+            return new Mock<UIDescriptorRegistry>(
+                Enumerable.Empty<UIDescriptor>(),
+                Enumerable.Empty<UIDescriptorProvider>(),
+                Mock.Of<ILogger<UIDescriptorRegistry>>());
+        }
+
+        private static CategoryEditorController CreateController(
+            Mock<IContentRepository> repo,
+            Mock<UIDescriptorRegistry> registry = null)
+        {
+            return new CategoryEditorController(repo.Object, (registry ?? CreateRegistry()).Object);
+        }
+
         [Fact]
         public void Create_WithValidRequest_CreatesAndReturnsContentLink()
         {
@@ -30,7 +53,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
                 .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Publish, AccessLevel.Edit))
                 .Returns(new ContentReference(42));
 
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             // Act
             var result = controller.Create(new CreateCategoryRequest
@@ -72,7 +95,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
                 .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Save | SaveAction.SkipValidation, AccessLevel.Edit))
                 .Returns(new ContentReference(77));
 
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Create(new CreateCategoryRequest
             {
@@ -108,7 +131,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
         private static void AssertBadRequestForName(string? name)
         {
             var repo = new Mock<IContentRepository>(MockBehavior.Strict);
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Create(new CreateCategoryRequest { ParentLink = "5", Name = name });
 
@@ -120,7 +143,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
         public void Create_WithInvalidParentLink_ReturnsBadRequest()
         {
             var repo = new Mock<IContentRepository>(MockBehavior.Strict);
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Create(new CreateCategoryRequest
             {
@@ -136,7 +159,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
         public void Create_WithNullRequest_ReturnsBadRequest()
         {
             var repo = new Mock<IContentRepository>(MockBehavior.Strict);
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Create(null);
 
@@ -161,7 +184,7 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 20), out grouping)).Returns(true);
             repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 30), out missing)).Returns(false);
 
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Selectable("10, 20, 30, not-a-link");
 
@@ -174,11 +197,121 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             Assert.True(list.Single(x => x.Id == "not-a-link").Selectable); // unparsable → don't restrict
         }
 
+        // Issue #56 point 7: the Selectable endpoint is also where [AllowedTypes] is enforced, because
+        // narrowing the shell store's `typeIdentifiers` instead would remove container categories from
+        // the tree and make everything nested under them unreachable.
+        [Fact]
+        public void Selectable_WithAllowedTypes_DisablesCategoriesOfOtherTypes()
+        {
+            var repo = new Mock<IContentRepository>();
+            CategoryData allowed = new CategoryData { IsSelectable = true };
+            CategoryData other = new CategoryData { IsSelectable = true };
+            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), out allowed)).Returns(true);
+            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 20), out other)).Returns(true);
+
+            // Both ids resolve to the same CLR type here, so drive the verdict off the id ordering by
+            // stubbing the single call the controller makes per node.
+            var registry = CreateRegistry();
+            registry
+                .SetupSequence(r => r.HasMatchedTypeIdentifier(typeof(CategoryData), It.IsAny<IEnumerable<string>>()))
+                .Returns(true)    // id 10 → type is allowed
+                .Returns(false);  // id 20 → type is not allowed
+
+            var result = CreateController(repo, registry).Selectable("10, 20", "some.allowed.type");
+
+            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.True(list.Single(x => x.Id == "10").Selectable);
+            Assert.Null(list.Single(x => x.Id == "10").Reason);
+
+            var disallowed = list.Single(x => x.Id == "20");
+            Assert.False(disallowed.Selectable);
+            Assert.Equal(CategoryEditorController.TypeNotAllowedReason, disallowed.Reason);
+        }
+
+        [Fact]
+        public void Selectable_WithNoAllowedTypes_DoesNotConsultTheRegistry()
+        {
+            var repo = new Mock<IContentRepository>();
+            CategoryData category = new CategoryData { IsSelectable = true };
+            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out category)).Returns(true);
+
+            var registry = CreateRegistry();
+
+            var result = CreateController(repo, registry).Selectable("10");
+
+            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.True(list.Single().Selectable);
+            registry.Verify(
+                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public void Selectable_RestrictedTypeWins_EvenWhenTheTypeIsAlsoAllowed()
+        {
+            var repo = new Mock<IContentRepository>();
+            CategoryData category = new CategoryData { IsSelectable = true };
+            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out category)).Returns(true);
+
+            var registry = CreateRegistry();
+            // Restricted is evaluated first and short-circuits, so the allow-list is never consulted.
+            registry
+                .Setup(r => r.HasMatchedTypeIdentifier(
+                    typeof(CategoryData),
+                    It.Is<IEnumerable<string>>(ids => ids.Contains("blocked.type"))))
+                .Returns(true);
+
+            var result = CreateController(repo, registry)
+                .Selectable("10", allowedTypes: "allowed.type", restrictedTypes: "blocked.type");
+
+            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.False(list.Single().Selectable);
+            Assert.Equal(CategoryEditorController.TypeNotAllowedReason, list.Single().Reason);
+        }
+
+        [Fact]
+        public void Selectable_IsSelectableTakesPrecedenceOverTheTypeCheck()
+        {
+            var repo = new Mock<IContentRepository>();
+            CategoryData grouping = new CategoryData { IsSelectable = false };
+            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out grouping)).Returns(true);
+
+            var registry = CreateRegistry();
+
+            var result = CreateController(repo, registry).Selectable("10", "some.allowed.type");
+
+            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.False(list.Single().Selectable);
+            // The more specific reason: the category itself is a grouping node, regardless of its type.
+            Assert.Equal(CategoryEditorController.NotSelectableReason, list.Single().Reason);
+            registry.Verify(
+                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public void Selectable_UnresolvableIds_StaySelectableAndSkipTheTypeCheck()
+        {
+            var repo = new Mock<IContentRepository>();
+            CategoryData missing = null;
+            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out missing)).Returns(false);
+
+            var registry = CreateRegistry();
+
+            var result = CreateController(repo, registry).Selectable("999, not-a-link", "some.allowed.type");
+
+            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.All(list, x => Assert.True(x.Selectable));
+            registry.Verify(
+                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
+                Times.Never);
+        }
+
         [Fact]
         public void Selectable_WithNoIds_ReturnsEmptyList()
         {
             var repo = new Mock<IContentRepository>(MockBehavior.Strict);
-            var controller = new CategoryEditorController(repo.Object);
+            var controller = CreateController(repo);
 
             var result = controller.Selectable(null);
 

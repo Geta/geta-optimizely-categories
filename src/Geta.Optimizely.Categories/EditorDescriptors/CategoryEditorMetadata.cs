@@ -25,11 +25,15 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             IEnumerable<Attribute> propertyAttributes = null)
         {
             // Issue #56 point 7: honour the property's own [AllowedTypes] in the picker instead of
-            // always widening to every CategoryData subtype. The concrete allowed types are pushed
-            // to the client as type identifiers so the shell stores filter the tree/search
-            // polymorphically (a base type matches all its subtypes), matching the native picker.
-            var allowedTypes = ResolveAllowedTypes(propertyAttributes);
-            var restrictedTypes = ResolveRestrictedTypes(propertyAttributes);
+            // always widening to every CategoryData subtype. The concrete allowed/restricted types are
+            // pushed to the client, which asks the Selectable endpoint to evaluate them per node and
+            // disables the ones that don't match — the same "grey, don't hide" approach the native
+            // picker takes (ContentTree + disableRestrictedTypes).
+            var attributes = ResolvePropertyAttributes(propertyAttributes, metadata?.Attributes);
+            var allowedTypes = ResolveAllowedTypes(attributes);
+            var restrictedTypes = ResolveRestrictedTypes(attributes);
+            var allowedTypeIdentifiers = ToTypeIdentifiers(allowedTypes);
+            var restrictedTypeIdentifiers = ToTypeIdentifiers(restrictedTypes);
 
             var categoryRepositoryDescriptor = contentRepositoryDescriptors
                 .First(x => x.Key == CategoryContentRepositoryDescriptor.RepositoryKey);
@@ -41,14 +45,20 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
                 Constants.ModuleName,
                 "ClientResources/Scripts/editors/CategorySelector.js");
 
-            metadata.EditorConfiguration["AllowedTypes"] = allowedTypes;
-            metadata.EditorConfiguration["AllowedDndTypes"] = allowedTypes;
-            metadata.OverlayConfiguration["AllowedDndTypes"] = allowedTypes;
+            // Type identifiers (lower-cased full names), not Type instances: this is the shape the CMS
+            // convention uses for these keys, and the only shape that survives serialisation to the
+            // client. CMS's own AllowedTypesMetadataExtender overwrites AllowedTypes/AllowedDndTypes for
+            // properties that declare [AllowedTypes], but a property using the package's default
+            // (all category types) is only ever set here.
+            metadata.EditorConfiguration["AllowedTypes"] = allowedTypeIdentifiers;
+            metadata.EditorConfiguration["AllowedDndTypes"] = allowedTypeIdentifiers;
+            metadata.OverlayConfiguration["AllowedDndTypes"] = allowedTypeIdentifiers;
 
-            // Type identifiers (lower-cased full names) the client passes as `typeIdentifiers` to the
-            // shell stores so the tree/search are server-side filtered to the allowed category types.
-            metadata.EditorConfiguration["allowedTypeIdentifiers"] = ToTypeIdentifiers(allowedTypes);
-            metadata.EditorConfiguration["restrictedTypeIdentifiers"] = ToTypeIdentifiers(restrictedTypes);
+            // Type identifiers the client forwards to the Selectable endpoint so it can disable nodes
+            // whose type isn't allowed. Deliberately NOT sent to the shell stores as `typeIdentifiers`:
+            // see the comment on appendBaseTypeIdentifier in categoryApi.js.
+            metadata.EditorConfiguration["allowedTypeIdentifiers"] = allowedTypeIdentifiers;
+            metadata.EditorConfiguration["restrictedTypeIdentifiers"] = restrictedTypeIdentifiers;
 
             // Issue #56 point 3: the client must address the built-in CMS shell stores relative to
             // the resolved shell base (e.g. "/Optimizely/" or, under OptimizelyIdentity, "/ui/")
@@ -65,6 +75,50 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             // CMS 13: opt into the native ES6 module editor pipeline. Without this flag,
             // CMS would treat ClientEditingClass as a legacy Dojo module id.
             metadata.EditorConfiguration["isJavascriptModule"] = true;
+        }
+
+        /// <summary>
+        /// Resolves the attribute set to read <see cref="AllowedTypesAttribute"/> from.
+        /// </summary>
+        /// <remarks>
+        /// The two wiring paths do not supply the same thing:
+        /// <list type="bullet">
+        /// <item><description>
+        /// <see cref="CategoriesEditorDescriptor"/> (the <c>UIHint</c> path) is an
+        /// <c>IMetadataExtender</c>, invoked by CMS as
+        /// <c>ApplyExtendersToMetadataAsync(propertyMetadata, propertyMetadata.Attributes, …)</c>, so it
+        /// receives the property's real attributes.
+        /// </description></item>
+        /// <item><description>
+        /// <see cref="DataAnnotations.CategoriesAttribute"/> (the <c>[Categories]</c> path) is an
+        /// <c>IDisplayMetadataProvider</c> attribute, invoked by CMS's
+        /// <c>ExtensibleMetadataProvider.ApplyMetadataAwareAttributes</c>, which builds the context with
+        /// <c>ModelAttributes.GetAttributesForType(metadata.GetType())</c> — the attributes of the
+        /// <see cref="ExtendedMetadata"/> CLR class, NOT of the property. So <c>context.Attributes</c>
+        /// never contains the property's <c>[AllowedTypes]</c> and this path silently saw nothing.
+        /// </description></item>
+        /// </list>
+        /// <see cref="ExtendedMetadata.Attributes"/> is the property's own attribute list (set by
+        /// <c>InitializeFromAttributes</c>, and what CMS's own <c>AllowedTypesMetadataExtender</c>
+        /// reads), so it is a reliable source on both paths.
+        /// </remarks>
+        internal static IEnumerable<Attribute> ResolvePropertyAttributes(
+            IEnumerable<Attribute> suppliedAttributes,
+            IEnumerable<Attribute> metadataAttributes)
+        {
+            var supplied = suppliedAttributes?.ToArray();
+            if (supplied != null && supplied.OfType<AllowedTypesAttribute>().Any())
+            {
+                return supplied;
+            }
+
+            var fromMetadata = metadataAttributes?.OfType<Attribute>().ToArray();
+            if (fromMetadata != null && fromMetadata.Length > 0)
+            {
+                return fromMetadata;
+            }
+
+            return supplied ?? Enumerable.Empty<Attribute>();
         }
 
         internal static Type[] ResolveAllowedTypes(IEnumerable<Attribute> propertyAttributes)
@@ -84,7 +138,7 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             return categoryTypes.Length > 0 ? categoryTypes : new[] { typeof(CategoryData) };
         }
 
-        private static Type[] ResolveRestrictedTypes(IEnumerable<Attribute> propertyAttributes)
+        internal static Type[] ResolveRestrictedTypes(IEnumerable<Attribute> propertyAttributes)
         {
             var allowedTypesAttribute = propertyAttributes?.OfType<AllowedTypesAttribute>().FirstOrDefault();
             return allowedTypesAttribute?.RestrictedTypes ?? Array.Empty<Type>();

@@ -31,8 +31,9 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     const labels = readLabels(cfg);
     const roots = extractRoots(cfg);
     const typeOpts = {
-        // Issue #56 point 7: concrete allowed/restricted category type identifiers, passed to the
-        // stores so the tree/search are filtered to the property's [AllowedTypes].
+        // Issue #56 point 7: the property's concrete allowed/restricted category type identifiers.
+        // Forwarded to the Selectable endpoint, which disables nodes whose type doesn't match — not to
+        // the shell stores, which would filter them out and break the hierarchy (see categoryApi.js).
         allowedTypeIdentifiers: cfg.allowedTypeIdentifiers,
         restrictedTypeIdentifiers: cfg.restrictedTypeIdentifiers
     };
@@ -350,17 +351,20 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         applySearchSelectability(results.map(r => r.id), rowCheckboxes);
     }
 
-    // Issue #56 point 6: disable non-selectable categories in the search results too, mirroring the
-    // tree. Best-effort — a failed lookup leaves everything selectable.
+    // Issue #56 points 6 and 7: disable non-selectable and disallowed-type categories in the search
+    // results too, mirroring the tree. This is the only type gate search has — the searchresults store
+    // ignores type identifiers entirely (see api.search). Best-effort: a failed lookup leaves
+    // everything selectable.
     async function applySearchSelectability(ids, rowCheckboxes) {
-        const map = await api.getSelectable(ids);
+        const map = await api.getSelectable(ids, typeOpts);
         if (destroyed) return;
         ids.forEach(id => {
-            if (map[String(id)] === false) {
+            const verdict = map[String(id)];
+            if (verdict && verdict.selectable === false) {
                 const cb = rowCheckboxes.get(String(id));
                 if (cb) {
                     cb.disabled = true;
-                    cb.title = "This category is not selectable";
+                    cb.title = api.selectabilityMessage(verdict.reason);
                     cb.parentNode?.classList?.add("geta-cat-tree__row--unselectable");
                 }
             }
