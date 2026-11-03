@@ -25,21 +25,13 @@ An alternative to Optimizely's default category functionality, where categories 
 
 ### Install the package
 
-Version 2.x (CMS 13) is published to GitHub Packages and attached to each [GitHub release](https://github.com/Geta/geta-optimizely-categories/releases). It isn't on nuget.org, which has the 1.x versions (CMS 12) only.
-
-To install from GitHub Packages, add the feed with a GitHub account and a personal access token that has the `read:packages` scope:
+Install the package from the [Optimizely NuGet feed](https://nuget.optimizely.com) (`https://api.nuget.optimizely.com/v3/index.json`), which Optimizely sites usually have as a package source already:
 
 ```
-dotnet nuget add source https://nuget.pkg.github.com/Geta/index.json --name geta-github --username <github-user> --password <token>
 dotnet add package Geta.Optimizely.Categories
 ```
 
-Or download `Geta.Optimizely.Categories.<version>.nupkg` from the release, put it in a folder, and add that folder as a package source (for example in `nuget.config`):
-
-```
-dotnet nuget add source <folder> --name geta-categories-local
-dotnet add package Geta.Optimizely.Categories --version <version>
-```
+nuget.org only has the 1.x versions (CMS 12). Each version's `.nupkg` is also attached to its [GitHub release](https://github.com/Geta/geta-optimizely-categories/releases).
 
 ### Register the package
 
