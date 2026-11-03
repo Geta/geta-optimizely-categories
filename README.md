@@ -117,7 +117,7 @@ This is a **source-only** change — stored category references are not affected
   - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
 - EditorAuthenticationSchemes - defaults to **empty**
   - Comma-separated authentication scheme(s) used to authorize the package's editor endpoints (`Create`, `CreatableTypes`, `Selectable` and `Children`). Leave empty to use the application's default authenticate/challenge scheme. Set this when there is no global default scheme for the app-root path - e.g. under **OptimizelyIdentity** - to the CMS editor cookie scheme(s).
-  - If these endpoints can't authenticate, the picker still works but degrades: every category is selectable (no `IsSelectable` / `[AllowedTypes]` check), "Create category" fails, and tree levels larger than CMS's content-tree cap show only their first categories.
+  - If these endpoints can't authenticate, the picker still works but degrades: every category is selectable (no `IsSelectable` / `[AllowedTypes]` check), "Create category" fails, and the tree is listed as CMS lists it - by name, ignoring `SortIndex`, and only the first categories of a level larger than CMS's content-tree cap.
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
@@ -238,6 +238,16 @@ public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> curre
 ```
 
 You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment". A URL segment after the categories, such as an action (/articles/entertainment__sports/feed/), is left to route as usual.
+
+### Sort order
+
+Categories are listed by their **Sort index** (`SortIndex`, lower first), then by name, in the picker and its search results, and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. Every category starts at 0, so without sort indexes the order stays alphabetical. To list categories in the same order elsewhere, use `InCategoryOrder()`:
+
+```csharp
+using Geta.Optimizely.Categories.Extensions;
+
+var topics = currentPage.Categories.Select(_contentLoader.Get<CategoryData>).InCategoryOrder();
+```
 
 ### More than one categories root
 

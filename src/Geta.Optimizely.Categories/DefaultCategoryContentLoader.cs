@@ -45,12 +45,12 @@ namespace Geta.Optimizely.Categories
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, CultureInfo culture) where T : CategoryData
         {
-            return ContentRepository.GetChildren<T>(parentCategoryLink, culture);
+            return ContentRepository.GetChildren<T>(parentCategoryLink, culture).InCategoryOrder();
         }
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, LoaderOptions loaderOptions) where T : CategoryData
         {
-            return ContentRepository.GetChildren<T>(parentCategoryLink, loaderOptions);
+            return ContentRepository.GetChildren<T>(parentCategoryLink, loaderOptions).InCategoryOrder();
         }
 
         public T GetFirstBySegment<T>(string urlSegment) where T : CategoryData

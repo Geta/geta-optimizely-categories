@@ -41,6 +41,13 @@ namespace Geta.Optimizely.Categories
         [CultureSpecific]
         public virtual bool IsSelectable { get; set; }
 
+        /// <summary>
+        /// The category's place among its siblings (issue #20): lower first, then by name. Categories
+        /// aren't pages, so they have no CMS sort order of their own.
+        /// </summary>
+        [Display(Name = "/contenttypes/categorydata/properties/sortindex/caption", Order = 40)]
+        public virtual int SortIndex { get; set; }
+
         protected override bool IsModified
         {
             get

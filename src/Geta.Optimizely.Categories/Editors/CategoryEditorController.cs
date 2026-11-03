@@ -11,6 +11,7 @@ using EPiServer.Core;
 using EPiServer.DataAbstraction;
 using EPiServer.DataAccess;
 using EPiServer.Security;
+using Geta.Optimizely.Categories.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -186,6 +187,7 @@ namespace Geta.Optimizely.Categories.Editors
 
             var children = _contentRepository.GetChildren<CategoryData>(parent, loaderOptions)
                 .Where(CanRead)
+                .InCategoryOrder()
                 .Select(c => new CategoryChildResponse
                 {
                     // The full reference, as the store sends it: a bare ID would drop a provider name.

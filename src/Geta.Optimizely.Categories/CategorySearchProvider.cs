@@ -104,6 +104,7 @@ namespace Geta.Optimizely.Categories
                 // Like CMS's own search providers, list only what the user may read.
                 .Where(c => _contentAccessEvaluator.HasAccess(c, AccessLevel.Read))
                 .OrderBy(c => MatchRank(c.Name, term))
+                .ThenBy(c => c.SortIndex)
                 .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
                 .Take(maxResults);
         }

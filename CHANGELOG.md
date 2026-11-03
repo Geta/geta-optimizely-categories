@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- A **Sort index** (`SortIndex`) on categories ([#20](https://github.com/Geta/geta-optimizely-categories/issues/20)). Categories are listed by it, then by name, in the picker and its search results, and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. It defaults to 0, so the order stays alphabetical until it's set. `InCategoryOrder()` orders other lists the same way.
 - `ICategoryContentLoader.Get<T>` overloads that take a `CultureInfo` or `LoaderOptions` ([#49](https://github.com/Geta/geta-optimizely-categories/issues/49)). They have default implementations, so existing custom loaders keep compiling.
 
 ### Fixed
@@ -28,6 +29,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- The picker lists every tree level through the package's `Children` endpoint, so it can follow `SortIndex`. If that endpoint fails, it falls back to CMS's content-structure store.
 - The `Selectable` endpoint takes the property being edited (`ownerContentTypeId`, `propertyName`) instead of type lists, and returns a `reason` for disabled categories. New endpoints: `Children` and `CreatableTypes`. Like `Create`, they are authorized by `EditorAuthenticationSchemes`.
 
 ## [2.1.0] - 2026-07-23

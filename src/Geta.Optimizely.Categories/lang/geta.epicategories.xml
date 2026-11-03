@@ -13,6 +13,9 @@
                     <isselectable>
                         <caption>Is selectable</caption>
                     </isselectable>
+                    <sortindex>
+                        <caption>Sort index</caption>
+                    </sortindex>
                 </properties>
             </categorydata>
         </contenttypes>
@@ -70,6 +73,9 @@
                     <isselectable>
                         <caption>Kan väljas</caption>
                     </isselectable>
+                    <sortindex>
+                        <caption>Sorteringsindex</caption>
+                    </sortindex>
                 </properties>
             </categorydata>
         </contenttypes>
@@ -127,6 +133,9 @@
                     <isselectable>
                         <caption>Kan velges</caption>
                     </isselectable>
+                    <sortindex>
+                        <caption>Sorteringsindeks</caption>
+                    </sortindex>
                 </properties>
             </categorydata>
         </contenttypes>
@@ -184,6 +193,9 @@
                     <isselectable>
                         <caption>Valittavissa</caption>
                     </isselectable>
+                    <sortindex>
+                        <caption>Lajitteluindeksi</caption>
+                    </sortindex>
                 </properties>
             </categorydata>
         </contenttypes>

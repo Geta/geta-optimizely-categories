@@ -119,7 +119,21 @@ export function setContentLanguage(language) {
  * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean}>>}
  */
 export async function getChildren(parentId) {
-    if (CAPPED_PARENTS.has(String(parentId))) return getAllChildren(parentId, null);
+    // The package endpoint lists every child, in category order (SortIndex, then name). CMS's store
+    // has neither: it lists categories by name and caps a level (MaxChildrenCountInContentTree).
+    const params = new URLSearchParams({ parentId: String(parentId) });
+    if (CONTENT_LANGUAGE) params.set("language", CONTENT_LANGUAGE);
+    try {
+        return mapContentStructureItems(await getJson(READ_CHILDREN + "?" + params.toString()));
+    } catch (err) {
+        // E.g. the endpoint can't authenticate the editor (see EditorAuthenticationSchemes): still
+        // show the level, as CMS lists it.
+        console.warn("Geta categories: listing children through the package failed; using CMS's order.", err);
+        return getStoreChildren(parentId);
+    }
+}
+
+async function getStoreChildren(parentId) {
     const params = new URLSearchParams({
         referenceId: String(parentId),
         query: "getchildren",
@@ -128,41 +142,7 @@ export async function getChildren(parentId) {
     });
     // The store treats `sort()` as a required dojo-style query directive — empty
     // parens = no sort. Appended raw so URLSearchParams doesn't percent-encode them.
-    const raw = await getJson(storeUrl(READ.children) + "?" + params.toString() + "&sort()");
-    const items = mapContentStructureItems(raw);
-    // The store returns at most STORE_CHILDREN_CAP items and has no paging, so a full answer may be
-    // truncated: list that parent through the package endpoint instead, which has no cap.
-    if (items.length < STORE_CHILDREN_CAP) return items;
-    CAPPED_PARENTS.add(String(parentId)); // skip the capped store answer on later expands
-    return getAllChildren(parentId, items);
-}
-
-// Parents known to exceed the store's cap.
-const CAPPED_PARENTS = new Set();
-
-// Lists a parent through the package endpoint (no cap). On failure keeps `fallback` (the store's
-// capped answer) rather than failing the level, or the whole tree at the top.
-async function getAllChildren(parentId, fallback) {
-    const params = new URLSearchParams({ parentId: String(parentId) });
-    if (CONTENT_LANGUAGE) params.set("language", CONTENT_LANGUAGE);
-    try {
-        return mapContentStructureItems(await getJson(READ_CHILDREN + "?" + params.toString()));
-    } catch (err) {
-        if (!fallback) {
-            CAPPED_PARENTS.delete(String(parentId));
-            return getChildren(parentId);
-        }
-        console.warn("Geta categories: listing all children failed; showing the first " + fallback.length + ".", err);
-        return fallback;
-    }
-}
-
-// The store's cap on children per parent: CMS's UserInterfaceOptions.MaxChildrenCountInContentTree,
-// 3000 unless configured, set from the server-resolved `maxChildrenCountInContentTree` editor setting.
-let STORE_CHILDREN_CAP = 3000;
-
-export function setStoreChildrenCap(cap) {
-    if (Number.isInteger(cap) && cap > 0) STORE_CHILDREN_CAP = cap;
+    return mapContentStructureItems(await getJson(storeUrl(READ.children) + "?" + params.toString() + "&sort()"));
 }
 
 // ----------------------------------------------------------------------------

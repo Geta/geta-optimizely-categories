@@ -10,8 +10,6 @@ using EPiServer.Framework.Localization;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
-using EPiServer.Shell.Web.Internal;
-using Microsoft.Extensions.Options;
 
 namespace Geta.Optimizely.Categories.EditorDescriptors
 {
@@ -63,10 +61,6 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             // The editing language, so the picker can evaluate culture-specific IsSelectable in it.
             // CMS resolves the editor's content language for this metadata request.
             metadata.EditorConfiguration["contentLanguage"] = ResolveContentLanguage();
-
-            // The content-structure store's (configurable) cap on children per parent: a level that
-            // reaches it is listed through the package's Children endpoint instead.
-            metadata.EditorConfiguration["maxChildrenCountInContentTree"] = ResolveMaxChildrenCountInContentTree();
 
             // The picker's UI texts in the editor's UI language; the client falls back to English
             // for any key missing here.
@@ -165,13 +159,6 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         {
             return ServiceLocator.Current.TryGetExistingInstance<IContentLanguageAccessor>(out var accessor)
                 ? accessor.Language?.Name
-                : null;
-        }
-
-        private static int? ResolveMaxChildrenCountInContentTree()
-        {
-            return ServiceLocator.Current.TryGetExistingInstance<IOptions<UserInterfaceOptions>>(out var options)
-                ? options.Value?.MaxChildrenCountInContentTree
                 : null;
         }
 

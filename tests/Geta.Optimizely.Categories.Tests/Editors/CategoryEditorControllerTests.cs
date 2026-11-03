@@ -377,6 +377,31 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             repo.Verify(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), It.IsAny<LoaderOptions>()), Times.Never);
         }
 
+        // Issue #20: the picker lists a level in category order - SortIndex, then name.
+        [Fact]
+        public void Children_AreListedBySortIndexThenName()
+        {
+            var parent = Category(5, "Parent");
+            var sport = Category(10, "Sport");
+            var news = Category(11, "News");
+            var culture = Category(12, "Culture");
+            var archive = Category(13, "Archive");
+            news.SortIndex = 1;
+            sport.SortIndex = 2;
+            culture.SortIndex = 2;
+            archive.SortIndex = 9;
+            IContent parentContent = parent;
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<IContent>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>(), out parentContent)).Returns(true);
+            repo.Setup(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>()))
+                .Returns(new[] { archive, sport, news, culture });
+
+            var result = CreateController(repo, access: ReadAccessExcept()).Children("5");
+
+            var names = Assert.IsType<List<CategoryChildResponse>>(Assert.IsType<OkObjectResult>(result).Value).Select(c => c.Name);
+            Assert.Equal(new[] { "News", "Culture", "Sport", "Archive" }, names);
+        }
+
         [Fact]
         public void Children_OfAParentTheUserCannotRead_ListsNothing()
         {

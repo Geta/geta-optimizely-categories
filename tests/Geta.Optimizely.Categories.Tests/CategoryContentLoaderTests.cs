@@ -46,6 +46,30 @@ namespace Geta.Optimizely.Categories.Tests
             Assert.Null(ContentRepositoryExtensions.SelectCategoriesRoot(Array.Empty<CategoryRoot>()));
         }
 
+        // Issue #20: sites list categories in the same order as the picker.
+        [Fact]
+        public void GetChildren_AreInCategoryOrder()
+        {
+            var repo = new Mock<EPiServer.IContentRepository>();
+            repo.Setup(r => r.GetChildren<CategoryData>(It.IsAny<ContentReference>(), It.IsAny<LoaderOptions>()))
+                .Returns(new[] { Named("Sport", 2), Named("Archive", 0), Named("News", 1), Named("Culture", 1) });
+            var loader = new DefaultCategoryContentLoader(repo.Object, Mock.Of<EPiServer.Globalization.LanguageResolver>());
+
+            var names = loader.GetChildren<CategoryData>(new ContentReference(5), new LoaderOptions()).Select(c => c.Name);
+
+            Assert.Equal(new[] { "Archive", "Culture", "News", "Sport" }, names);
+        }
+
+        [Fact]
+        public void InCategoryOrder_SortsBySortIndexThenName_IgnoringCase()
+        {
+            var ordered = new[] { Named("beta", 0), Named("Alpha", 0), Named("first", -1) }.InCategoryOrder().Select(c => c.Name);
+
+            Assert.Equal(new[] { "first", "Alpha", "beta" }, ordered);
+        }
+
+        private static CategoryData Named(string name, int sortIndex) => new() { Name = name, SortIndex = sortIndex };
+
         private static CategoryRoot Root(int id) => new() { ContentLink = new ContentReference(id) };
     }
 }
