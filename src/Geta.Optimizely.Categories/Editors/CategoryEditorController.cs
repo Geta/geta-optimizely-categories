@@ -4,21 +4,23 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using EPiServer;
 using EPiServer.Core;
+using EPiServer.DataAbstraction;
 using EPiServer.DataAccess;
 using EPiServer.Security;
-using EPiServer.Shell;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Geta.Optimizely.Categories.Editors
 {
     /// <summary>
-    /// Server endpoint backing the CMS 13 ES6 category picker's "Create category" action.
-    /// Only this one write path is package-owned — read paths (tree, search, resolve)
-    /// use the built-in CMS shell stores.
+    /// Package-owned endpoints backing the CMS 13 ES6 category picker: the "Create category" action,
+    /// the <see cref="Selectable"/> check that decides which listed categories may be picked, and the
+    /// <see cref="Children"/> listing for levels larger than the shell content-structure store returns.
+    /// Otherwise listing the categories (tree, search, resolve) uses the built-in CMS shell stores.
     /// </summary>
     [ApiController]
     [Authorize(Policy = Constants.EditorAuthorizationPolicy)]
@@ -32,14 +34,20 @@ namespace Geta.Optimizely.Categories.Editors
         public const string TypeNotAllowedReason = "typeNotAllowed";
 
         private readonly IContentRepository _contentRepository;
-        private readonly UIDescriptorRegistry _uiDescriptorRegistry;
+        private readonly IContentAccessEvaluator _contentAccessEvaluator;
+        private readonly CategoryTypesPropertyValidator _typesValidator;
+        private readonly ContentTypeAvailabilityService _contentTypeAvailability;
 
         public CategoryEditorController(
             IContentRepository contentRepository,
-            UIDescriptorRegistry uiDescriptorRegistry)
+            IContentAccessEvaluator contentAccessEvaluator,
+            CategoryTypesPropertyValidator typesValidator,
+            ContentTypeAvailabilityService contentTypeAvailability)
         {
             _contentRepository = contentRepository;
-            _uiDescriptorRegistry = uiDescriptorRegistry;
+            _contentAccessEvaluator = contentAccessEvaluator;
+            _typesValidator = typesValidator;
+            _contentTypeAvailability = contentTypeAvailability;
         }
 
         [HttpPost]
@@ -56,7 +64,12 @@ namespace Geta.Optimizely.Categories.Editors
                 return BadRequest("Invalid parent link.");
             }
 
-            var category = _contentRepository.GetDefault<CategoryData>(parent, request.ContentTypeId);
+            // In the editing language when the picker sends it: this endpoint is outside the shell's paths,
+            // so CMS wouldn't otherwise know which language the editor is working in.
+            var culture = ParseCulture(request.Language);
+            var category = culture == null
+                ? _contentRepository.GetDefault<CategoryData>(parent, request.ContentTypeId)
+                : _contentRepository.GetDefault<CategoryData>(parent, request.ContentTypeId, culture);
             ((IContent)category).Name = request.Name;
 
             // Issue #56 point 5: quick-create only supplies Name, so a category type with a
@@ -91,86 +104,151 @@ namespace Geta.Optimizely.Categories.Editors
         /// applies to nothing on its own:
         /// <list type="bullet">
         /// <item><description><see cref="CategoryData.IsSelectable"/> — issue #56 point 6.</description></item>
-        /// <item><description>the property's <c>[AllowedTypes]</c> / <c>RestrictedTypes</c>, matched
-        /// polymorphically — issue #56 point 7.</description></item>
+        /// <item><description>the property's allowed types — the code <c>[AllowedTypes]</c> and any
+        /// admin-mode settings, by the rules publishing applies (<see cref="CategoryTypesPropertyValidator"/>) — issue
+        /// #56 point 7.</description></item>
         /// </list>
         /// Unknown / non-category ids report selectable so the picker never over-restricts.
         /// </summary>
         /// <param name="ids">Comma-separated content-link ids to evaluate.</param>
-        /// <param name="allowedTypes">
-        /// Comma-separated allowed type identifiers (lower-cased full names). Empty means "any category
-        /// type". A category matches when the identifier belongs to the type or to any of its base
-        /// types, so passing a base type allows all its subtypes — the same semantics as
-        /// <c>AllowedTypesAttribute</c>'s publish-time validation.
-        /// </param>
-        /// <param name="restrictedTypes">Comma-separated restricted type identifiers; matched the same way and applied first.</param>
+        /// <param name="ownerContentTypeId">The content type that declares the property being edited.</param>
+        /// <param name="propertyName">The property being edited. Without it (or the owner) no type rule applies.</param>
+        /// <param name="language">The editing language. <see cref="CategoryData.IsSelectable"/> is
+        /// culture-specific, so it is read from that language branch (falling back to the master).</param>
         [HttpGet]
         public IActionResult Selectable(
             [FromQuery] string ids,
-            [FromQuery] string allowedTypes = null,
-            [FromQuery] string restrictedTypes = null)
+            [FromQuery] int? ownerContentTypeId = null,
+            [FromQuery] string propertyName = null,
+            [FromQuery] string language = null)
         {
-            var result = new List<CategorySelectableResponse>();
+            var rules = _typesValidator.For(ownerContentTypeId, propertyName);
+            var loaderOptions = LoaderOptionsFor(language);
 
-            if (string.IsNullOrWhiteSpace(ids))
+            // The verdict depends only on the content type, so evaluate each once per request.
+            var typeVerdicts = new Dictionary<int, bool>();
+            bool TypeAllowed(CategoryData category)
             {
-                return Ok(result);
-            }
-
-            var allowed = SplitIdentifiers(allowedTypes);
-            var restricted = SplitIdentifiers(restrictedTypes);
-
-            foreach (var idPart in ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                var response = new CategorySelectableResponse { Id = idPart, Selectable = true };
-
-                if (ContentReference.TryParse(idPart, out var link) && !ContentReference.IsNullOrEmpty(link)
-                    && _contentRepository.TryGet<CategoryData>(link, out var category))
+                if (!typeVerdicts.TryGetValue(category.ContentTypeID, out var verdict))
                 {
-                    if (!category.IsSelectable)
-                    {
-                        response.Selectable = false;
-                        response.Reason = NotSelectableReason;
-                    }
-                    else if (!IsTypeAllowed(category.GetType(), allowed, restricted))
-                    {
-                        response.Selectable = false;
-                        response.Reason = TypeNotAllowedReason;
-                    }
+                    typeVerdicts[category.ContentTypeID] = verdict = rules.Allows(category.GetOriginalType(), category.ContentTypeID);
                 }
 
+                return verdict;
+            }
+
+            var result = new List<CategorySelectableResponse>();
+            foreach (var idPart in SplitList(ids))
+            {
+                var response = new CategorySelectableResponse { Id = idPart, Selectable = true };
                 result.Add(response);
+
+                if (!ContentReference.TryParse(idPart, out var link) || ContentReference.IsNullOrEmpty(link)
+                    || !_contentRepository.TryGet<CategoryData>(link, loaderOptions, out var category))
+                {
+                    continue;
+                }
+
+                if (!category.IsSelectable)
+                {
+                    response.Selectable = false;
+                    response.Reason = NotSelectableReason;
+                }
+                else if (!TypeAllowed(category))
+                {
+                    response.Selectable = false;
+                    response.Reason = TypeNotAllowedReason;
+                }
             }
 
             return Ok(result);
         }
 
         /// <summary>
-        /// Polymorphic type match against the property's allowed/restricted type identifiers.
-        /// <see cref="UIDescriptorRegistry.HasMatchedTypeIdentifier"/> walks the type's whole descriptor
-        /// ancestor chain, which is the same matching CMS itself applies in
-        /// <c>DefaultContentQueryHelper.FilterTypeIdentifier</c>, so a base identifier matches every
-        /// subtype without the package having to know the hierarchy.
+        /// Lists a category's children without the shell content-structure store's cap on the number of
+        /// items it returns. The picker only falls back to this when the store's answer looks truncated.
+        /// As in the store, nothing is listed below a parent the current user cannot read, and children
+        /// they cannot read are left out.
         /// </summary>
-        private bool IsTypeAllowed(Type categoryType, string[] allowed, string[] restricted)
+        [HttpGet]
+        public IActionResult Children([FromQuery] string parentId, [FromQuery] string language = null)
         {
-            if (restricted.Length > 0 && _uiDescriptorRegistry.HasMatchedTypeIdentifier(categoryType, restricted))
+            if (!ContentReference.TryParse(parentId, out var parent) || ContentReference.IsNullOrEmpty(parent))
             {
-                return false;
+                return BadRequest("Invalid parent link.");
             }
 
-            // No declared allow-list → every category type is fine.
-            return allowed.Length == 0 || _uiDescriptorRegistry.HasMatchedTypeIdentifier(categoryType, allowed);
+            var loaderOptions = LoaderOptionsFor(language);
+            if (!_contentRepository.TryGet<IContent>(parent, loaderOptions, out var parentContent) || !CanRead(parentContent))
+            {
+                return Ok(new List<CategoryChildResponse>());
+            }
+
+            var children = _contentRepository.GetChildren<CategoryData>(parent, loaderOptions)
+                .Where(CanRead)
+                .Select(c => new CategoryChildResponse
+                {
+                    // The full reference, as the store sends it: a bare ID would drop a provider name.
+                    Id = c.ContentLink.ToReferenceWithoutVersion().ToString(),
+                    Name = c.Name,
+                    // One child is enough to answer; don't load every grandchild.
+                    HasChildren = _contentRepository.GetChildren<CategoryData>(c.ContentLink, loaderOptions, 0, 1).Any()
+                })
+                .ToList();
+
+            return Ok(children);
         }
 
-        private static string[] SplitIdentifiers(string value)
+        /// <summary>
+        /// The category content types "Create category" may create under a parent for a property: those
+        /// CMS makes available there for the current user that the property may also hold, so the new
+        /// category can be picked and the page still publishes.
+        /// </summary>
+        [HttpGet]
+        public IActionResult CreatableTypes(
+            [FromQuery] string parentId,
+            [FromQuery] int? ownerContentTypeId = null,
+            [FromQuery] string propertyName = null)
         {
-            return string.IsNullOrWhiteSpace(value)
-                ? Array.Empty<string>()
-                : value
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(x => x.ToLowerInvariant())
-                    .ToArray();
+            if (!ContentReference.TryParse(parentId, out var parent) || ContentReference.IsNullOrEmpty(parent)
+                || !_contentRepository.TryGet<IContent>(parent, out var parentContent))
+            {
+                return BadRequest("Invalid parent link.");
+            }
+
+            var rules = _typesValidator.For(ownerContentTypeId, propertyName);
+            var types = _contentTypeAvailability.ListAvailable(parentContent, false, User)
+                .Where(ct => ct.ModelType != null && typeof(CategoryData).IsAssignableFrom(ct.ModelType))
+                .Where(ct => rules.Allows(ct.ModelType, ct.ID))
+                .Select(ct => new CategoryContentTypeResponse { Id = ct.ID, Name = ct.Name, DisplayName = ct.LocalizedName })
+                .ToList();
+
+            return Ok(types);
+        }
+
+        private bool CanRead(IContent content) => _contentAccessEvaluator.HasAccess(content, AccessLevel.Read);
+
+        private static CultureInfo ParseCulture(string language)
+        {
+            if (string.IsNullOrWhiteSpace(language))
+            {
+                return null;
+            }
+
+            try { return CultureInfo.GetCultureInfo(language.Trim()); }
+            catch (CultureNotFoundException) { return null; }
+        }
+
+        // No (valid) language: FallbackWithMaster(null) uses CMS's preferred culture, as before.
+        private static LoaderOptions LoaderOptionsFor(string language)
+        {
+            return new LoaderOptions { LanguageLoaderOption.FallbackWithMaster(ParseCulture(language)) };
+        }
+
+        private static string[] SplitList(string value)
+        {
+            return value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                ?? Array.Empty<string>();
         }
     }
 }

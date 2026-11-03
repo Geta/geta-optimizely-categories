@@ -15,14 +15,14 @@
 // Package-owned endpoints:
 //
 //   POST /geta-optimizely-categories/api/Create
-//   GET  /geta-optimizely-categories/api/Selectable?ids=<ids>&allowedTypes=<ids>&restrictedTypes=<ids>
+//   GET  /geta-optimizely-categories/api/Selectable?ids=<ids>&ownerContentTypeId=<id>&propertyName=<name>&language=<lang>
+//   GET  /geta-optimizely-categories/api/Children?parentId=<id>&language=<lang>  (levels past the store's cap)
+//   GET  /geta-optimizely-categories/api/CreatableTypes?parentId=<id>&ownerContentTypeId=<id>&propertyName=<name>
 //
-// The stores decide WHICH categories the tree and search return; the Selectable endpoint decides
-// which of them may be PICKED (IsSelectable plus the property's [AllowedTypes]). Keeping those two
-// concerns apart is deliberate — see appendBaseTypeIdentifier.
+// The stores decide WHICH categories are listed; the Selectable endpoint decides which may be PICKED.
 //
 // All read functions return data in the editor's internal node shape:
-//   { id: string, name: string, hasChildren: boolean, typeIdentifier?: string }
+//   { id: string, name: string, hasChildren: boolean }
 // so the tree/search UI doesn't have to know which raw store fed it.
 
 // Shell/stores base path. Defaults to "/Optimizely/" (CMS 13 default) but is overridden per
@@ -41,8 +41,7 @@ export function setShellBasePath(base) {
 const READ = {
     children:    "cms/Stores/contentstructure/",
     search:      "shell/Stores/searchresults/",
-    resolve:     "cms/Stores/contentdata/",
-    contentType: "cms/Stores/contenttype/"
+    resolve:     "cms/Stores/contentdata/"
 };
 
 function storeUrl(relative) {
@@ -52,11 +51,13 @@ function storeUrl(relative) {
 // Package-owned endpoints (see CategoryEditorController).
 const WRITE_CREATE = "/geta-optimizely-categories/api/Create";
 const READ_SELECTABLE = "/geta-optimizely-categories/api/Selectable";
+const READ_CHILDREN = "/geta-optimizely-categories/api/Children";
+const READ_CREATABLE_TYPES = "/geta-optimizely-categories/api/CreatableTypes";
 
-// Default content-type identifier for the tree filter. Callers can override
-// via opts.typeIdentifier; we keep a constant here so the picker still works
-// when no opts are supplied.
-const CATEGORY_TYPE_IDENTIFIER = "geta.optimizely.categories.categorydata";
+// Base category type the tree lists. Always the base type, never the property's [AllowedTypes]: the
+// store filters rather than marks, so narrowing it would drop container categories and hide the
+// allowed categories beneath them. The allow-list is enforced per node via getSelectable().
+export const CATEGORY_TYPE_IDENTIFIER = "geta.optimizely.categories.categorydata";
 
 async function getJson(url) {
     const res = await fetch(url, {
@@ -82,8 +83,8 @@ async function getJson(url) {
  *   - X-Requested-With: disambiguates AJAX from direct browser navigation.
  *   - RequestVerificationToken: anti-forgery; CMS 13 enforces this on store endpoints
  *     even for GET. We read it from the hidden form input the shell renders into the page.
- *   - X-Epi-ContentLanguage: the editing language hint; safe to send if we can read it
- *     from <html lang>, omitted otherwise.
+ *   - X-EPiContentLanguage: the editing language (set via setContentLanguage from the
+ *     server-resolved `contentLanguage` editor setting), the header name CMS reads.
  */
 function buildShellStoreHeaders() {
     const headers = {
@@ -92,8 +93,7 @@ function buildShellStoreHeaders() {
     };
     const token = readAntiforgeryToken();
     if (token) headers["RequestVerificationToken"] = token;
-    const lang = readContentLanguage();
-    if (lang) headers["X-Epi-ContentLanguage"] = lang;
+    if (CONTENT_LANGUAGE) headers["X-EPiContentLanguage"] = CONTENT_LANGUAGE;
     return headers;
 }
 
@@ -103,10 +103,11 @@ function readAntiforgeryToken() {
     return el ? el.value : null;
 }
 
-function readContentLanguage() {
-    if (typeof document === "undefined") return null;
-    // <html lang="en"> is the cheapest reliable source available in the editor frame.
-    return (document.documentElement && document.documentElement.lang) || null;
+// The editing language. Not read from <html lang>, which is the UI language, not the content's.
+let CONTENT_LANGUAGE = null;
+
+export function setContentLanguage(language) {
+    CONTENT_LANGUAGE = language && typeof language === "string" ? language : null;
 }
 
 // ----------------------------------------------------------------------------
@@ -115,42 +116,53 @@ function readContentLanguage() {
 /**
  * Fetch direct children of a parent content node.
  * @param {string} parentId   Content-link id (e.g. "108")
- * @param {object} [opts]     { typeIdentifier? } — the base category type to list. Allowed/restricted
- *                            types are NOT applied here; see appendBaseTypeIdentifier.
- * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean,typeIdentifier?:string}>>}
+ * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean}>>}
  */
-export async function getChildren(parentId, opts) {
+export async function getChildren(parentId) {
+    if (CAPPED_PARENTS.has(String(parentId))) return getAllChildren(parentId, null);
     const params = new URLSearchParams({
         referenceId: String(parentId),
         query: "getchildren",
-        allLanguages: "true"
+        allLanguages: "true",
+        typeIdentifiers: CATEGORY_TYPE_IDENTIFIER
     });
-    appendBaseTypeIdentifier(params, opts);
     // The store treats `sort()` as a required dojo-style query directive — empty
     // parens = no sort. Appended raw so URLSearchParams doesn't percent-encode them.
     const raw = await getJson(storeUrl(READ.children) + "?" + params.toString() + "&sort()");
-    return mapContentStructureItems(raw);
+    const items = mapContentStructureItems(raw);
+    // The store returns at most STORE_CHILDREN_CAP items and has no paging, so a full answer may be
+    // truncated: list that parent through the package endpoint instead, which has no cap.
+    if (items.length < STORE_CHILDREN_CAP) return items;
+    CAPPED_PARENTS.add(String(parentId)); // skip the capped store answer on later expands
+    return getAllChildren(parentId, items);
 }
 
-// Always the BASE category type — never the property's concrete [AllowedTypes] (issue #56 point 7).
-//
-// It is tempting to narrow the store query instead, but the store *filters* rather than *marks*:
-// GetChildrenQuery restricts children to the requested type, so intermediate "container" categories
-// are dropped from the tree and every allowed category nested underneath becomes unreachable. For a
-// hierarchy like
-//     categories root -> grouping category (a different type) -> the allowed category type
-// asking for the allowed type alone returns nothing at the root, and the picker renders empty.
-//
-// Nor is there a combination that works: including an ancestor type so the container survives
-// re-admits every sibling type, because the store matches via the item's whole descriptor ancestor
-// chain (DefaultContentQueryHelper.FilterTypeIdentifier -> UIDescriptorRegistry.HasMatchedTypeIdentifier).
-// Restricting the leaves and exposing the containers are mutually exclusive through that parameter.
-//
-// So we keep the tree complete and enforce the allow-list per node by *disabling* it, via the
-// Selectable endpoint — the same "grey, don't hide" approach as the native picker (ContentTree with
-// disableRestrictedTypes). That also keeps a single code path for the tree and for search.
-function appendBaseTypeIdentifier(params, opts) {
-    params.append("typeIdentifiers", opts?.typeIdentifier || CATEGORY_TYPE_IDENTIFIER);
+// Parents known to exceed the store's cap.
+const CAPPED_PARENTS = new Set();
+
+// Lists a parent through the package endpoint (no cap). On failure keeps `fallback` (the store's
+// capped answer) rather than failing the level, or the whole tree at the top.
+async function getAllChildren(parentId, fallback) {
+    const params = new URLSearchParams({ parentId: String(parentId) });
+    if (CONTENT_LANGUAGE) params.set("language", CONTENT_LANGUAGE);
+    try {
+        return mapContentStructureItems(await getJson(READ_CHILDREN + "?" + params.toString()));
+    } catch (err) {
+        if (!fallback) {
+            CAPPED_PARENTS.delete(String(parentId));
+            return getChildren(parentId);
+        }
+        console.warn("Geta categories: listing all children failed; showing the first " + fallback.length + ".", err);
+        return fallback;
+    }
+}
+
+// The store's cap on children per parent: CMS's UserInterfaceOptions.MaxChildrenCountInContentTree,
+// 3000 unless configured, set from the server-resolved `maxChildrenCountInContentTree` editor setting.
+let STORE_CHILDREN_CAP = 3000;
+
+export function setStoreChildrenCap(cap) {
+    if (Number.isInteger(cap) && cap > 0) STORE_CHILDREN_CAP = cap;
 }
 
 // ----------------------------------------------------------------------------
@@ -159,25 +171,31 @@ function appendBaseTypeIdentifier(params, opts) {
 /**
  * Free-text search scoped to one or more roots.
  * @param {string} query
- * @param {object} [opts]  { searchRoots?: string|string[] }
- * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean,typeIdentifier?:string}>>}
+ * @param {object} opts  { providerId: string, searchRoots?: string|string[] } — providerId is the
+ *                       server-sent `searchProviderId` (CategorySearchProvider.ProviderKey)
+ * @returns {Promise<Array<{id:string,name:string,hasChildren:boolean}>>}
  */
 export async function search(query, opts) {
     const roots = opts && opts.searchRoots;
     const searchRoots = Array.isArray(roots) ? roots.join(",") : (roots || "");
     const params = new URLSearchParams({
+        // The store only queries the provider named here; without it every search comes back empty.
+        providerId: (opts && opts.providerId) || "",
         parameters: JSON.stringify({ filterOnDeleted: true }),
         filterOnCulture: "false",
         searchQuery: query
     });
     if (searchRoots) params.set("searchRoots", searchRoots);
-    // No `typeIdentifiers` here on purpose: EPiServer.Shell.UI.Rest.SearchResultStore binds only
-    // searchQuery / parameters / searchRoots / providerId / filterOnCulture / contentSearch, so any
-    // type identifiers we sent were silently dropped and search was never type-filtered at all.
-    // Type enforcement for search happens the same way as for the tree — the caller disables
-    // disallowed hits via getSelectable().
+    // No `typeIdentifiers`: SearchResultStore doesn't bind them. Callers gate hits via getSelectable().
     const raw = await getJson(storeUrl(READ.search) + "?" + params.toString());
-    return mapSearchResults(raw);
+    const items = pickArray(raw);
+    const hits = mapSearchResults(items);
+    // When the provider throws, the store answers 200 with one id-less result carrying the error
+    // message as its title. Report it as a failure instead of offering it as a pickable row.
+    if (hits.length === 0 && items.length > 0) {
+        throw new Error(decodeHtml(items[0] && items[0].title) || "search provider error");
+    }
+    return hits;
 }
 
 // ----------------------------------------------------------------------------
@@ -202,32 +220,6 @@ export async function resolve(id) {
     }
 }
 
-// ----------------------------------------------------------------------------
-// creatable content types — used by the "Create category" flow to pick a
-// concrete subtype of CategoryData (e.g. alloy_cms13.models.basiccategory).
-
-/**
- * Fetch concrete content types the editor is allowed to create under the given parent.
- * Mirrors the URL the CMS shell uses for the same purpose.
- * @param {string} parentId
- * @param {string} [requestedType]  e.g. "geta.optimizely.categories.categorydata"
- * @returns {Promise<Array<{id:number,name:string,displayName?:string,typeIdentifier?:string}>>}
- */
-export async function getCreatableTypes(parentId, requestedType) {
-    const params = new URLSearchParams({
-        query: "getsuggestedcontenttypes",
-        parentReference: String(parentId)
-    });
-    if (requestedType) params.set("requestedTypes", requestedType);
-    const raw = await getJson(storeUrl(READ.contentType) + "?" + params.toString());
-    const items = pickArray(raw);
-    return items.map(t => ({
-        id: t.id != null ? t.id : t.contentTypeID,
-        name: t.name || t.contentTypeName,
-        displayName: t.displayName || null,
-        typeIdentifier: t.typeIdentifier || null
-    }));
-}
 
 // ----------------------------------------------------------------------------
 // create — POST to the package-owned endpoint
@@ -246,7 +238,9 @@ export async function create(parentId, name, contentTypeId) {
         body: JSON.stringify({
             parentLink: String(parentId),
             name: name,
-            contentTypeId: contentTypeId
+            contentTypeId: contentTypeId,
+            // Created in the editing language; the header alone isn't read outside the shell's paths.
+            language: CONTENT_LANGUAGE
         })
     });
     if (!res.ok) {
@@ -263,24 +257,73 @@ export async function create(parentId, name, contentTypeId) {
 // ----------------------------------------------------------------------------
 // selectable — which categories may actually be picked
 //
-// The CMS 13 picker enforces neither CategoryData.IsSelectable (issue #56 point 6) nor the property's
-// [AllowedTypes] (point 7), so both gates are evaluated here, server-side, in one round trip per
-// rendered level. Keeping the type check on the server means the polymorphic match is done by
-// UIDescriptorRegistry — authoritative, and no need to model the type hierarchy in the client.
+// Evaluates IsSelectable (issue #56 point 6) and the property's [AllowedTypes] (point 7) server-side.
+// Returns a map { [id]: { selectable: boolean, reason: string|null } }; use
+// isSelectable() to read it.
 //
-// Returns a map { [id]: { selectable: boolean, reason: string|null } }; unknown ids default to
-// selectable.
+// IIS rejects query strings over 2048 bytes by default (404.15), so large levels are split into
+// several requests.
+
+const SELECTABLE_MAX_QUERY_LENGTH = 1800;
 
 export async function getSelectable(ids, opts) {
     const list = (ids || []).map(String).filter(x => x !== "" && x !== "null" && x !== "undefined");
     if (list.length === 0) return {};
-    const params = new URLSearchParams({ ids: list.join(",") });
-    const allowed = opts?.allowedTypeIdentifiers;
-    const restricted = opts?.restrictedTypeIdentifiers;
-    if (Array.isArray(allowed) && allowed.length) params.set("allowedTypes", allowed.join(","));
-    if (Array.isArray(restricted) && restricted.length) params.set("restrictedTypes", restricted.join(","));
+    const typeQuery = propertyParams(opts).toString();
+    const batches = batchIds(list, SELECTABLE_MAX_QUERY_LENGTH - typeQuery.length);
+    const maps = await Promise.all(batches.map(batch => fetchSelectable(batch, typeQuery)));
+    return Object.assign({}, ...maps);
+}
+
+// The property being edited (server-sent ownerContentTypeId / propertyName): the server applies its
+// allowed types — code [AllowedTypes] and admin-mode settings — the way publishing does.
+function propertyParams(opts) {
+    const params = new URLSearchParams();
+    if (opts?.ownerContentTypeId != null) params.set("ownerContentTypeId", String(opts.ownerContentTypeId));
+    if (opts?.propertyName) params.set("propertyName", opts.propertyName);
+    if (CONTENT_LANGUAGE) params.set("language", CONTENT_LANGUAGE);
+    return params;
+}
+
+/**
+ * Category content types "Create category" may create under `parentId` for the property in `opts`:
+ * available there for the current user and allowed in the property.
+ * @returns {Promise<Array<{id:number,name:string,displayName?:string}>>}
+ */
+export async function getCreatableCategoryTypes(parentId, opts) {
+    const params = propertyParams(opts);
+    params.delete("language");
+    params.set("parentId", String(parentId));
+    const raw = await getJson(READ_CREATABLE_TYPES + "?" + params.toString());
+    return (Array.isArray(raw) ? raw : []).map(t => ({ id: t.id, name: t.name, displayName: t.displayName || null }));
+}
+
+// Packs ids into batches whose encoded `ids=` parameter stays within `budget` characters (each
+// separator is sent as "%2C"). Every batch holds at least one id.
+function batchIds(ids, budget) {
+    const limit = Math.max(budget, 200);
+    const batches = [];
+    let batch = [];
+    let length = "ids=".length;
+    for (const id of ids) {
+        const cost = encodeURIComponent(id).length + 3;
+        if (batch.length > 0 && length + cost > limit) {
+            batches.push(batch);
+            batch = [];
+            length = "ids=".length;
+        }
+        batch.push(id);
+        length += cost;
+    }
+    if (batch.length > 0) batches.push(batch);
+    return batches;
+}
+
+async function fetchSelectable(ids, typeQuery) {
+    const params = new URLSearchParams({ ids: ids.join(",") });
+    const query = params.toString() + (typeQuery ? "&" + typeQuery : "");
     try {
-        const raw = await getJson(READ_SELECTABLE + "?" + params.toString());
+        const raw = await getJson(READ_SELECTABLE + "?" + query);
         const map = {};
         (Array.isArray(raw) ? raw : []).forEach(r => {
             if (r?.id != null) {
@@ -296,6 +339,13 @@ export async function getSelectable(ids, opts) {
     }
 }
 
+// The single "may this id be picked?" rule over a getSelectable() map: unknown ids and failed
+// lookups count as selectable, so the picker never over-restricts.
+export function isSelectable(map, id) {
+    const verdict = map && map[String(id)];
+    return !verdict || verdict.selectable !== false;
+}
+
 // Human-readable tooltip for a disabled row, keyed off the endpoint's reason code.
 export function selectabilityMessage(reason) {
     if (reason === "typeNotAllowed") return "This category type cannot be selected for this property";
@@ -305,31 +355,36 @@ export function selectabilityMessage(reason) {
 // ----------------------------------------------------------------------------
 // shape mapping
 
-// Note: neither mapper filters by type any more. Removing a node also removes the path to its
-// descendants, which silently hides allowed categories nested under a disallowed container. Type
-// enforcement is a per-node *disable* instead — see getSelectable().
-
 function mapContentStructureItems(raw) {
     const items = pickArray(raw);
     return items.map(i => ({
         id: String(i.contentLink != null ? i.contentLink : i.id),
         name: i.name,
-        hasChildren: !!(i.hasChildren != null ? i.hasChildren : i.hasChildLinks),
-        typeIdentifier: i.typeIdentifier || i.contentTypeName || null
+        hasChildren: !!(i.hasChildren != null ? i.hasChildren : i.hasChildLinks)
     }));
 }
 
-function mapSearchResults(raw) {
-    const items = pickArray(raw);
-    return items.map(i => {
-        const meta = i.metadata || {};
-        return {
-            id: String(meta.id != null ? meta.id : i.id),
-            name: i.title || i.name || "",
-            hasChildren: false, // search hits are leaves in the picker
-            typeIdentifier: meta.typeIdentifier || null
-        };
-    });
+function mapSearchResults(items) {
+    return items
+        .map(i => {
+            const meta = (i && i.metadata) || {};
+            const id = meta.id != null ? meta.id : i && i.id;
+            if (id == null || id === "") return null; // not a content hit (e.g. the store's error result)
+            return {
+                id: String(id),
+                // CMS HTML-encodes titles for its own search UI (ContentSearchProviderBase); the picker
+                // renders text, so decode them ("F&#246;retag" -> "Företag").
+                name: decodeHtml(i.title || i.name || ""),
+                hasChildren: false // search hits are leaves in the picker
+            };
+        })
+        .filter(Boolean);
+}
+
+// Decodes HTML entities. DOMParser documents are inert (no scripts run, nothing loads).
+function decodeHtml(text) {
+    if (!text) return "";
+    return new DOMParser().parseFromString(String(text), "text/html").documentElement.textContent || "";
 }
 
 function pickArray(raw) {
