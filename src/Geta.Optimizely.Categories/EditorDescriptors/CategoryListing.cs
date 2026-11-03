@@ -13,18 +13,22 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
     public class CategoryListing : ISelectionFactory
     {
         private readonly ICategoryContentLoader _categoryContentLoader;
-        private readonly IContentLoader _contentLoader;
 
         public CategoryListing()
-            : this(ServiceLocator.Current.GetInstance<ICategoryContentLoader>(), ServiceLocator.Current.GetInstance<IContentLoader>())
+            : this(ServiceLocator.Current.GetInstance<ICategoryContentLoader>())
         {
 
         }
 
-        public CategoryListing(ICategoryContentLoader categoryContentLoader, IContentLoader contentLoader)
+        public CategoryListing(ICategoryContentLoader categoryContentLoader)
         {
             _categoryContentLoader = categoryContentLoader;
-            _contentLoader = contentLoader;
+        }
+
+        [Obsolete("Every level is listed through ICategoryContentLoader; use CategoryListing(ICategoryContentLoader).")]
+        public CategoryListing(ICategoryContentLoader categoryContentLoader, IContentLoader contentLoader)
+            : this(categoryContentLoader)
+        {
         }
 
         public IEnumerable<SelectListItem> GetSelectListItems(Type propertyType)
@@ -43,7 +47,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         private void GetChildren(CategoryData categoryData, List<SelectListItem> list, string prefix)
         {
             list.Add(new SelectListItem { Text = prefix + categoryData.Name, Value = categoryData.ContentLink.ID.ToString() });
-            foreach (var c in _contentLoader.GetChildren<CategoryData>(categoryData.ContentLink))
+            // Through the category loader, as the top level is: every level in category order.
+            foreach (var c in _categoryContentLoader.GetChildren<CategoryData>(categoryData.ContentLink))
             {
                 GetChildren(c, list, prefix + "-");
             }

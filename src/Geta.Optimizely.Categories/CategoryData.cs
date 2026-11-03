@@ -30,14 +30,23 @@ namespace Geta.Optimizely.Categories
             }
         }
 
-        [Display(Order = 20)]
+        // Localization keys, so the captions in lang/geta.epicategories.xml also apply to category types
+        // that derive from CategoryData: CMS looks captions up by the concrete type, not its base class.
+        [Display(Name = "/contenttypes/categorydata/properties/description/caption", Order = 20)]
         [UIHint(UIHint.Textarea)]
         [CultureSpecific]
         public virtual string Description { get; set; }
 
-        [Display(Order = 30)]
+        [Display(Name = "/contenttypes/categorydata/properties/isselectable/caption", Order = 30)]
         [CultureSpecific]
         public virtual bool IsSelectable { get; set; }
+
+        /// <summary>
+        /// The category's place among its siblings (issue #20): lower first, then by name. Categories
+        /// aren't pages, so they have no CMS sort order of their own.
+        /// </summary>
+        [Display(Name = "/contenttypes/categorydata/properties/sortindex/caption", Order = 40)]
+        public virtual int SortIndex { get; set; }
 
         protected override bool IsModified
         {

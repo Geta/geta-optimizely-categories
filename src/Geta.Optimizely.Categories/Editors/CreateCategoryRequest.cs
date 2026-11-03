@@ -1,6 +1,10 @@
 // Copyright (c) Geta Digital. All rights reserved.
 // Licensed under Apache-2.0. See the LICENSE file in the project root for more information
 
+using System.Text.Json.Serialization;
+
+// The responses pin their JSON names: the picker reads camelCase, and MVC would otherwise follow the
+// site's own JSON naming policy.
 namespace Geta.Optimizely.Categories.Editors
 {
     /// <summary>
@@ -28,20 +32,27 @@ namespace Geta.Optimizely.Categories.Editors
     /// <summary>Result returned to the picker so it can select the newly created category.</summary>
     public class CreateCategoryResponse
     {
+        [JsonPropertyName("contentLink")]
         public string ContentLink { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// True when the category was published; false when it was saved as a draft because the
         /// content type has [Required] properties the quick-create dialog could not fill.
         /// </summary>
+        [JsonPropertyName("published")]
         public bool Published { get; set; }
     }
 
     /// <summary>Per-category selectability, returned by <see cref="CategoryEditorController.Selectable"/>.</summary>
     public class CategorySelectableResponse
     {
+        [JsonPropertyName("id")]
         public string Id { get; set; }
+
+        [JsonPropertyName("selectable")]
         public bool Selectable { get; set; }
 
         /// <summary>
@@ -50,22 +61,33 @@ namespace Geta.Optimizely.Categories.Editors
         /// <see cref="CategoryEditorController.TypeNotAllowedReason"/> (the type is outside the
         /// property's [AllowedTypes]). Null when the category is selectable.
         /// </summary>
+        [JsonPropertyName("reason")]
         public string Reason { get; set; }
     }
 
     /// <summary>A category content type, returned by <see cref="CategoryEditorController.CreatableTypes"/>.</summary>
     public class CategoryContentTypeResponse
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
+
+        [JsonPropertyName("displayName")]
         public string DisplayName { get; set; }
     }
 
     /// <summary>A child category, returned by <see cref="CategoryEditorController.Children"/>.</summary>
     public class CategoryChildResponse
     {
+        [JsonPropertyName("id")]
         public string Id { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
+
+        [JsonPropertyName("hasChildren")]
         public bool HasChildren { get; set; }
     }
 }

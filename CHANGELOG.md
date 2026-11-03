@@ -4,8 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- A **Sort index** (`SortIndex`) on categories ([#20](https://github.com/Geta/geta-optimizely-categories/issues/20)). Categories are listed by it, then by name, in the picker (search results after their match: exact, then starts with, then the rest), and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. It defaults to 0, so the order stays alphabetical until it's set. `InCategoryOrder()` orders other lists of a level the same way.
+- `ICategoryContentLoader.Get<T>` overloads that take a `CultureInfo` or `LoaderOptions` ([#49](https://github.com/Geta/geta-optimizely-categories/issues/49)). They have default implementations, so existing custom loaders keep compiling. The defaults load straight from CMS's `IContentLoader`, so a custom loader or decorator that should handle these calls implements them.
+
 ### Fixed
 
+- Category URLs such as `/articles/sports/` and `/articles/sports__news/` no longer return 404 on CMS 13 ([#54](https://github.com/Geta/geta-optimizely-categories/issues/54)). Since 2.0.0 the router found the categories but left their URL segment for CMS to read as an action. Categories are also read across several URL segments when the configuration calls for it: with `/` as `CategorySeparator` (`/articles/sports/news/`), and category paths with `UseUrlPathForCategoryRetrieval`, which the URL helpers now also write. With the default `__` separator, categories are listed in one segment (`/articles/sports__news/`). A segment after the categories, such as an action, is left to route; the action needs a `currentCategories` parameter.
+- Categories under a second categories root, for example one an import added, are no longer hidden ([#48](https://github.com/Geta/geta-optimizely-categories/issues/48)). The picker, its search, category routing and the loader's segment and path lookups use every root in the assets folder, the root in use first. `GetGlobalCategories`/`GetSiteCategories` still list only the root in use, so what a site lists doesn't change. Before, only one root was used and the categories under the others couldn't be picked or routed until someone moved them.
+- The root in use (where new categories are created, and looked in first) is now chosen the same way on every request: a root that holds categories wins over an empty one, otherwise CMS's child order decides, as before (the root whose name sorts first), and of roots with the same name the oldest. Before, roots with the same name were picked in no stable order.
+- New `GetOrCreateGlobalCategoriesRoots()`/`GetOrCreateSiteCategoriesRoots()` extensions and `CategorySettings.GlobalCategoriesRoots`/`SiteCategoriesRoots` list every root, the one in use first.
+- The `Description` and `IsSelectable` captions are translated on category types that derive from `CategoryData`, not only on `CategoryData` itself.
 - In the CMS 13.3 side-by-side edit view, the category picker no longer reverts to the published selection after the first change to a published page, and the next change no longer builds on the reverted selection ([#62](https://github.com/Geta/geta-optimizely-categories/issues/62)).
 - The package's translations (`lang/geta.epicategories.xml`) are now embedded in the assembly, so category labels are translated again ([#43](https://github.com/Geta/geta-optimizely-categories/issues/43), [#44](https://github.com/Geta/geta-optimizely-categories/pull/44)).
 - The category picker is shown in the editor's UI language (English, Swedish, Norwegian and Finnish are included); since 2.0.0 it was English only. Texts set per property in the editor settings (`selectLabel`, `popupTitle` and so on) still take precedence.
@@ -21,6 +31,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- The picker lists every tree level through the package's `Children` endpoint, so it can follow `SortIndex`. If that endpoint fails, it falls back to CMS's content-structure store.
 - The `Selectable` endpoint takes the property being edited (`ownerContentTypeId`, `propertyName`) instead of type lists, and returns a `reason` for disabled categories. New endpoints: `Children` and `CreatableTypes`. Like `Create`, they are authorized by `EditorAuthenticationSchemes`.
 
 ## [2.1.0] - 2026-07-23

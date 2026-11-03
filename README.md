@@ -106,6 +106,7 @@ This is a **source-only** change — stored category references are not affected
 
 - CategorySeparator - defaults to **"__"**
   - i.e. "/articles/entertainment__sports/"
+  - "/" also works: "/articles/entertainment/sports/"
 - DisableCategoryAsLinkableType - defaults to **false**
   - Allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
 - HideDisallowedRootCategories - defaults to **false**
@@ -116,7 +117,7 @@ This is a **source-only** change — stored category references are not affected
   - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
 - EditorAuthenticationSchemes - defaults to **empty**
   - Comma-separated authentication scheme(s) used to authorize the package's editor endpoints (`Create`, `CreatableTypes`, `Selectable` and `Children`). Leave empty to use the application's default authenticate/challenge scheme. Set this when there is no global default scheme for the app-root path - e.g. under **OptimizelyIdentity** - to the CMS editor cookie scheme(s).
-  - If these endpoints can't authenticate, the picker still works but degrades: every category is selectable (no `IsSelectable` / `[AllowedTypes]` check), "Create category" fails, and tree levels larger than CMS's content-tree cap show only their first categories.
+  - If these endpoints can't authenticate, the picker still works but degrades: every category is selectable (no `IsSelectable` / `[AllowedTypes]` check), "Create category" fails, and the tree is listed as CMS lists it - by name, ignoring `SortIndex`, and only the first categories of a level larger than CMS's content-tree cap.
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 
@@ -236,7 +237,29 @@ public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> curre
 }
 ```
 
-You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment".
+You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment". A URL segment after the categories, such as an action (/articles/entertainment__sports/feed/), is left to route as usual.
+
+Every action that should answer a category URL needs the `IList<CategoryData> currentCategories` parameter, even if it doesn't use it: CMS only picks an action that has a parameter for each route value. With `Feed(ArticleListPage currentPage)` alone, /articles/entertainment__sports/feed/ returns 404.
+
+With `UseUrlPathForCategoryRetrieval`, each category is written as its full path from the categories root, including the root's own URL segment: /articles/categories/sports/football/. The URL helpers below write category paths this way too. Categories are separated with the category separator, as above; with `/` as the separator, a URL holds one category path. Every category in the URL has to exist: unlike URL segments, an unknown category path isn't skipped.
+
+### Sort order
+
+Categories are listed by their **Sort index** (`SortIndex`, lower first), then by name, in the picker and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. The picker's search lists exact matches first, then names that start with the search, then the rest, each in that order. Every category starts at 0, so without sort indexes the order stays alphabetical. Names are compared in the language the categories are listed in.
+
+To list a level in the same order elsewhere, for example children loaded through `IContentLoader`, use `InCategoryOrder()`:
+
+```csharp
+using Geta.Optimizely.Categories.Extensions;
+
+var topics = _contentLoader.GetChildren<CategoryData>(topicsLink).InCategoryOrder();
+```
+
+`SortIndex` places a category among its siblings, so for categories from several levels, such as a page's selected categories, `InCategoryOrder()` compares places under different parents.
+
+### More than one categories root
+
+The package keeps one categories root in the global assets folder and one in each site's assets folder. If an import adds another root next to one of them, the categories under every root are still used: the picker lists them (the root in use's first), its search finds them, and category routing and the loader's segment and path lookups resolve them (the root in use is looked in first). `GetGlobalCategories`/`GetSiteCategories` still list only the root in use, so what a site lists doesn't change. New categories are created under the root in use. That's the root that holds categories rather than an empty one; otherwise the first root CMS lists (the one whose name sorts first), and of roots with the same name, the oldest. Moving them under the root in use is optional. A root imported under the root in use is listed in the picker as a group that can't be picked, with its categories under it.
 
 	
 There are a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:

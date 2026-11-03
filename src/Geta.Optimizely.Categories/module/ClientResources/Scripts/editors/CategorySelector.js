@@ -29,7 +29,6 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     // (e.g. "/Optimizely/" or "/ui/" under OptimizelyIdentity) instead of a hardcoded literal.
     api.setShellBasePath(cfg.shellBasePath);
     api.setContentLanguage(cfg.contentLanguage);
-    api.setStoreChildrenCap(cfg.maxChildrenCountInContentTree);
 
     // This editor's texts: the server's translations (EditorConfiguration["labels"]) under any
     // per-property texts in the editor settings, which 2.0 and 2.1 read and which still win.
