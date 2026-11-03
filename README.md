@@ -109,13 +109,14 @@ This is a **source-only** change — stored category references are not affected
 - DisableCategoryAsLinkableType - defaults to **false**
   - Allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
 - HideDisallowedRootCategories - defaults to **false**
-  - Possibility to hide root categories based on [AllowedTypes] setting
+  - Possibility to hide root categories based on [AllowedTypes] setting.
 - ShowDefaultCategoryProperty - default to **false**
   - Allows you to show the default Episerver category property
 - UseUrlPathForCategoryRetrieval - default to **false**
   - Enables retrieval of categories that match the exact URL path instead of searching for a URL segment.
 - EditorAuthenticationSchemes - defaults to **empty**
-  - Comma-separated authentication scheme(s) used to authorize the category editor endpoints (the "Create category" API). Leave empty to use the application's default authenticate/challenge scheme. Set this when there is no global default scheme for the app-root path — e.g. under **OptimizelyIdentity** — to the CMS editor cookie scheme(s).
+  - Comma-separated authentication scheme(s) used to authorize the package's editor endpoints (`Create`, `CreatableTypes`, `Selectable` and `Children`). Leave empty to use the application's default authenticate/challenge scheme. Set this when there is no global default scheme for the app-root path - e.g. under **OptimizelyIdentity** - to the CMS editor cookie scheme(s).
+  - If these endpoints can't authenticate, the picker still works but degrades: every category is selectable (no `IsSelectable` / `[AllowedTypes]` check), "Create category" fails, and tree levels larger than CMS's content-tree cap show only their first categories.
 
 You can configure categories in Startup.cs. Below is an example where we change the category seperator:
 

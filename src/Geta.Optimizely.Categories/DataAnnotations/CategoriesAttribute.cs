@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
@@ -34,9 +33,7 @@ namespace Geta.Optimizely.Categories.DataAnnotations
                 return;
 
             // Shared with CategoriesEditorDescriptor (the UIHint path) — both wire the same editor.
-            // Pass the property attributes so the editor honours [AllowedTypes] (issue #56 point 7).
-            var propertyAttributes = context.Attributes?.OfType<Attribute>();
-            CategoryEditorMetadata.Apply(additionalValue, _contentRepositoryDescriptors, _categorySettings, propertyAttributes);
+            CategoryEditorMetadata.Apply(additionalValue, _contentRepositoryDescriptors, _categorySettings);
         }
     }
 }

@@ -13,7 +13,7 @@
 import { toIds, fromIds, sameIds } from "./valueModel.js";
 import { renderChips } from "./chips.js";
 import { createDialog } from "./categoryDialog.js";
-import { renderTree } from "./categoryTree.js";
+import { renderTree, applySelectability } from "./categoryTree.js";
 import { injectCategoryEditorStyles } from "./styles.js";
 import * as api from "./categoryApi.js";
 
@@ -27,15 +27,17 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     // Issue #56 point 3: address the built-in CMS stores relative to the server-resolved shell base
     // (e.g. "/Optimizely/" or "/ui/" under OptimizelyIdentity) instead of a hardcoded literal.
     api.setShellBasePath(cfg.shellBasePath);
+    api.setContentLanguage(cfg.contentLanguage);
+    api.setStoreChildrenCap(cfg.maxChildrenCountInContentTree);
 
     const labels = readLabels(cfg);
     const roots = extractRoots(cfg);
+    // Issue #56 point 7: the property being edited. The server applies its allowed types (code
+    // [AllowedTypes] plus admin-mode settings) by the same rules as publishing.
     const typeOpts = {
-        // Issue #56 point 7: the property's concrete allowed/restricted category type identifiers.
-        // Forwarded to the Selectable endpoint, which disables nodes whose type doesn't match — not to
-        // the shell stores, which would filter them out and break the hierarchy (see categoryApi.js).
-        allowedTypeIdentifiers: cfg.allowedTypeIdentifiers,
-        restrictedTypeIdentifiers: cfg.restrictedTypeIdentifiers
+        ownerContentTypeId: cfg.ownerContentTypeId,
+        propertyName: cfg.propertyName,
+        hideDisallowedRoots: !!(cfg.categorySettings && cfg.categorySettings.hideDisallowedRootCategories)
     };
 
     let ids = toIds(initialValue);
@@ -44,7 +46,9 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     let dialog = null;       // created lazily on first open
     let treeApi = null;      // returned by renderTree, lets us reflect the working set
     let working = [];        // selection inside the open dialog
+    let initialIds = new Set(); // selection when the dialog opened: never unticked by the selectability check
     let searchTimer = null;
+    let renderSeq = 0;       // bumped per tree/search render so superseded renders can bail out
 
     container.classList.add("geta-categories");
 
@@ -93,6 +97,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     function openDialog() {
         if (readOnly || destroyed) return;
         working = ids.slice();
+        initialIds = new Set(ids);
         if (!dialog) buildDialog();
         // re-mount tree + clear search every open so the user sees a fresh state
         dialog._searchInput && (dialog._searchInput.value = "");
@@ -149,15 +154,24 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         dialog.onCancel(() => { /* discard working set; nothing to do */ });
     }
 
+    function disposeTree() {
+        treeApi?.destroy();
+        treeApi = null;
+    }
+
     function renderTreeIntoDialog() {
         if (!dialog) return;
+        clearTimeout(searchTimer); // a debounced search from before (re)opening must not replace this tree
+        renderSeq++;
+        disposeTree();
         dialog._treeHost.innerHTML = "";
         treeApi = renderTree(
             dialog._treeHost,
             roots,
             typeOpts,
             new Set(working),
-            onWorkingToggle
+            onWorkingToggle,
+            initialIds
         );
     }
 
@@ -250,30 +264,28 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             input.disabled = true;
             errorEl.style.display = "none";
             try {
-                // Resolve a concrete content type to instantiate. The descriptor passes
-                // the base type identifier — CMS gives us the list of concrete subtypes
-                // the current user can create under the chosen parent. For the picker
-                // we create under the first configured root.
+                // Resolve a concrete content type to instantiate under the first configured root.
                 const parentId = roots[0];
                 let contentTypeId = cfg.categoryTypeId;
                 if (contentTypeId == null) {
-                    const types = await api.getCreatableTypes(
-                        parentId,
-                        cfg.creatingTypeIdentifier || "geta.optimizely.categories.categorydata"
-                    );
-                    if (!types || types.length === 0) {
+                    contentTypeId = await resolveCreatableTypeId(parentId);
+                    if (contentTypeId == null) {
                         showError(errorEl, labels.createNoTypes);
                         return;
                     }
-                    contentTypeId = types[0].id;
                 }
 
                 const created = await api.create(parentId, name, contentTypeId);
                 if (destroyed) return;
 
-                // Optimistically reflect the new category in the working set + tree.
+                // Pre-select the new category only if it may be picked (e.g. not when its type defaults
+                // IsSelectable to false).
                 names.set(created.id, created.name);
-                if (!working.includes(created.id)) working = working.concat([created.id]);
+                const verdicts = await api.getSelectable([created.id], typeOpts);
+                if (destroyed) return;
+                if (api.isSelectable(verdicts, created.id) && !working.includes(created.id)) {
+                    working = working.concat([created.id]);
+                }
 
                 // If a search is currently showing, clear it so the user sees the tree
                 // with the new entry; either way, re-render the tree.
@@ -292,6 +304,13 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         });
 
         input.focus();
+    }
+
+    // A content type to create the category as: one CMS makes available under the parent that this
+    // property may also hold (the server applies the same rules as publishing).
+    async function resolveCreatableTypeId(parentId) {
+        const types = await api.getCreatableCategoryTypes(parentId, typeOpts);
+        return types.length > 0 ? types[0].id : null;
     }
 
     function showError(el, msg) {
@@ -313,6 +332,9 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
 
     async function renderSearchResults(q) {
         if (!dialog) return;
+        const seq = ++renderSeq;
+        // Destroy the tree now so one that is still loading can't overwrite the results.
+        disposeTree();
         const host = dialog._treeHost;
         host.innerHTML = "";
         const loading = document.createElement("div");
@@ -320,10 +342,12 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         loading.textContent = "Searching…";
         host.appendChild(loading);
 
+        const isStale = () => destroyed || seq !== renderSeq;
         let results;
         try {
-            results = await api.search(q, { searchRoots: roots, ...typeOpts });
+            results = await api.search(q, { searchRoots: roots, providerId: cfg.searchProviderId });
         } catch (err) {
+            if (isStale()) return;
             host.innerHTML = "";
             const e = document.createElement("div");
             e.className = "geta-cat-tree__error";
@@ -331,10 +355,9 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             host.appendChild(e);
             return;
         }
-        if (destroyed) return;
+        if (isStale()) return;
 
         host.innerHTML = "";
-        treeApi = null; // tree is replaced by flat results until search clears
         if (!results || results.length === 0) {
             const empty = document.createElement("div");
             empty.className = "geta-cat-tree__empty";
@@ -348,26 +371,13 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             rowCheckboxes.set(String(r.id), built.cb);
             host.appendChild(built.row);
         });
-        applySearchSelectability(results.map(r => r.id), rowCheckboxes);
-    }
-
-    // Issue #56 points 6 and 7: disable non-selectable and disallowed-type categories in the search
-    // results too, mirroring the tree. This is the only type gate search has — the searchresults store
-    // ignores type identifiers entirely (see api.search). Best-effort: a failed lookup leaves
-    // everything selectable.
-    async function applySearchSelectability(ids, rowCheckboxes) {
-        const map = await api.getSelectable(ids, typeOpts);
-        if (destroyed) return;
-        ids.forEach(id => {
-            const verdict = map[String(id)];
-            if (verdict && verdict.selectable === false) {
-                const cb = rowCheckboxes.get(String(id));
-                if (cb) {
-                    cb.disabled = true;
-                    cb.title = api.selectabilityMessage(verdict.reason);
-                    cb.parentNode?.classList?.add("geta-cat-tree__row--unselectable");
-                }
-            }
+        // Gate search hits the same way as the tree; the search store ignores type identifiers.
+        applySelectability(results.map(r => String(r.id)), {
+            opts: typeOpts,
+            checkboxFor: id => rowCheckboxes.get(id),
+            preselected: initialIds,
+            onUncheck: id => onWorkingToggle(id, false),
+            isStale
         });
     }
 
@@ -405,7 +415,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         destroy: function () {
             destroyed = true;
             clearTimeout(searchTimer);
-            if (treeApi && treeApi.destroy) treeApi.destroy();
+            disposeTree();
             if (dialog && dialog.destroy) dialog.destroy();
             container.innerHTML = "";
             container.classList.remove("geta-categories");

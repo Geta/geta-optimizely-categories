@@ -3,15 +3,16 @@
 
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
+using System.Security.Principal;
 using EPiServer;
 using EPiServer.Core;
+using EPiServer.DataAbstraction;
 using EPiServer.DataAccess;
 using EPiServer.Security;
-using EPiServer.Shell;
 using Geta.Optimizely.Categories.Editors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -19,25 +20,84 @@ namespace Geta.Optimizely.Categories.Tests.Editors
 {
     public class CategoryEditorControllerTests
     {
-        // UIDescriptorRegistry.HasMatchedTypeIdentifier is public virtual, so it can be stubbed.
-        // We stub rather than build real UIDescriptors because UIDescriptor's public constructor
-        // resolves ViewConfigurations / IContentTypeRepository through ServiceLocator. The polymorphic
-        // ancestor-chain matching itself is CMS's contract (and the same call CMS's own
-        // DefaultContentQueryHelper.FilterTypeIdentifier makes), so these tests cover the controller's
-        // own logic: which gate wins, and which reason is reported.
-        private static Mock<UIDescriptorRegistry> CreateRegistry()
+        // A validator whose rules allow exactly the given model types (anything, when it isn't asked).
+        private static Mock<CategoryTypesPropertyValidator> ValidatorAllowing(params System.Type[] allowed)
         {
-            return new Mock<UIDescriptorRegistry>(
-                Enumerable.Empty<UIDescriptor>(),
-                Enumerable.Empty<UIDescriptorProvider>(),
-                Mock.Of<ILogger<UIDescriptorRegistry>>());
+            var rules = new Mock<IPropertyTypeRules>();
+            rules.Setup(r => r.Allows(It.IsAny<System.Type>(), It.IsAny<int>()))
+                .Returns<System.Type, int>((type, _) => allowed.Any(a => a.IsAssignableFrom(type)));
+            return ValidatorReturning(rules.Object);
+        }
+
+        private static Mock<CategoryTypesPropertyValidator> ValidatorReturning(IPropertyTypeRules rules)
+        {
+            var validator = new Mock<CategoryTypesPropertyValidator>(null!, null!, null!);
+            validator.Setup(g => g.For(It.IsAny<int?>(), It.IsAny<string>())).Returns(rules);
+            return validator;
         }
 
         private static CategoryEditorController CreateController(
             Mock<IContentRepository> repo,
-            Mock<UIDescriptorRegistry> registry = null)
+            Mock<CategoryTypesPropertyValidator>? validator = null,
+            Mock<IContentAccessEvaluator>? access = null,
+            Mock<ContentTypeAvailabilityService>? availability = null)
         {
-            return new CategoryEditorController(repo.Object, (registry ?? CreateRegistry()).Object);
+            return new CategoryEditorController(
+                repo.Object,
+                (access ?? new Mock<IContentAccessEvaluator>()).Object,
+                (validator ?? ValidatorAllowing(typeof(CategoryData))).Object,
+                (availability ?? new Mock<ContentTypeAvailabilityService>()).Object);
+        }
+
+        private static T Typed<T>(int contentTypeId) where T : CategoryData, new()
+        {
+            return new T { IsSelectable = true, ContentTypeID = contentTypeId };
+        }
+
+        // Grants Read on everything except the given content.
+        private static Mock<IContentAccessEvaluator> ReadAccessExcept(params IContent[] denied)
+        {
+            var access = new Mock<IContentAccessEvaluator>();
+            access
+                .Setup(a => a.HasAccess(It.IsAny<IContent>(), It.IsAny<IPrincipal>(), AccessLevel.Read))
+                .Returns<IContent, IPrincipal, AccessLevel>((content, _, _) => !denied.Contains(content));
+            return access;
+        }
+
+        private static CategoryData Category(int id, string name, string? providerName = null)
+        {
+            var category = new CategoryData { IsSelectable = true };
+            ((IContent)category).ContentLink = new ContentReference(id, providerName);
+            ((IContent)category).Name = name;
+            return category;
+        }
+
+        private static List<CategorySelectableResponse> SelectableList(IActionResult result)
+        {
+            return Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
+        }
+
+        // A repository that resolves exactly the given ids; any other id is not found.
+        private static Mock<IContentRepository> RepoWith(params (int Id, CategoryData Category)[] items)
+        {
+            var repo = new Mock<IContentRepository>();
+            foreach (var (id, category) in items)
+            {
+                var content = category;
+                repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == id), It.IsAny<LoaderOptions>(), out content)).Returns(true);
+            }
+
+            return repo;
+        }
+
+        // Distinct category types, so type verdicts are stubbed per type — as they are decided in
+        // production — instead of per call order.
+        private class AllowedCategory : CategoryData
+        {
+        }
+
+        private class OtherCategory : CategoryData
+        {
         }
 
         [Fact]
@@ -174,22 +234,9 @@ namespace Geta.Optimizely.Categories.Tests.Editors
         [Fact]
         public void Selectable_ReportsIsSelectablePerCategory_UnknownDefaultsToSelectable()
         {
-            var repo = new Mock<IContentRepository>();
+            var repo = RepoWith((10, new CategoryData { IsSelectable = true }), (20, new CategoryData { IsSelectable = false }));
 
-            CategoryData selectable = new CategoryData { IsSelectable = true };
-            CategoryData grouping = new CategoryData { IsSelectable = false };
-            CategoryData missing = null;
-
-            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), out selectable)).Returns(true);
-            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 20), out grouping)).Returns(true);
-            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 30), out missing)).Returns(false);
-
-            var controller = CreateController(repo);
-
-            var result = controller.Selectable("10, 20, 30, not-a-link");
-
-            var ok = Assert.IsType<OkObjectResult>(result);
-            var list = Assert.IsType<List<CategorySelectableResponse>>(ok.Value);
+            var list = SelectableList(CreateController(repo).Selectable("10, 20, 30, not-a-link"));
 
             Assert.True(list.Single(x => x.Id == "10").Selectable);   // IsSelectable = true
             Assert.False(list.Single(x => x.Id == "20").Selectable);  // IsSelectable = false → disabled in picker
@@ -197,114 +244,171 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             Assert.True(list.Single(x => x.Id == "not-a-link").Selectable); // unparsable → don't restrict
         }
 
-        // Issue #56 point 7: the Selectable endpoint is also where [AllowedTypes] is enforced, because
-        // narrowing the shell store's `typeIdentifiers` instead would remove container categories from
-        // the tree and make everything nested under them unreachable.
+        // Issue #56 point 7: the Selectable endpoint also applies the property's allowed types, through
+        // CategoryTypesPropertyValidator (covered by CategoryTypesPropertyValidatorTests); these cover the controller's own logic.
         [Fact]
-        public void Selectable_WithAllowedTypes_DisablesCategoriesOfOtherTypes()
+        public void Selectable_DisablesCategoriesThePropertyDoesNotAllow()
         {
-            var repo = new Mock<IContentRepository>();
-            CategoryData allowed = new CategoryData { IsSelectable = true };
-            CategoryData other = new CategoryData { IsSelectable = true };
-            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), out allowed)).Returns(true);
-            repo.Setup(r => r.TryGet<CategoryData>(It.Is<ContentReference>(c => c.ID == 20), out other)).Returns(true);
+            var repo = RepoWith((10, Typed<AllowedCategory>(1)), (20, Typed<OtherCategory>(2)));
+            var validator = ValidatorAllowing(typeof(AllowedCategory));
 
-            // Both ids resolve to the same CLR type here, so drive the verdict off the id ordering by
-            // stubbing the single call the controller makes per node.
-            var registry = CreateRegistry();
-            registry
-                .SetupSequence(r => r.HasMatchedTypeIdentifier(typeof(CategoryData), It.IsAny<IEnumerable<string>>()))
-                .Returns(true)    // id 10 → type is allowed
-                .Returns(false);  // id 20 → type is not allowed
+            var list = SelectableList(CreateController(repo, validator).Selectable("10, 20", ownerContentTypeId: 7, propertyName: "Categories"));
 
-            var result = CreateController(repo, registry).Selectable("10, 20", "some.allowed.type");
-
-            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
             Assert.True(list.Single(x => x.Id == "10").Selectable);
             Assert.Null(list.Single(x => x.Id == "10").Reason);
-
             var disallowed = list.Single(x => x.Id == "20");
             Assert.False(disallowed.Selectable);
             Assert.Equal(CategoryEditorController.TypeNotAllowedReason, disallowed.Reason);
+            validator.Verify(g => g.For(7, "Categories"), Times.Once);
         }
 
         [Fact]
-        public void Selectable_WithNoAllowedTypes_DoesNotConsultTheRegistry()
+        public void Selectable_EvaluatesEachContentTypeOnce()
         {
-            var repo = new Mock<IContentRepository>();
-            CategoryData category = new CategoryData { IsSelectable = true };
-            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out category)).Returns(true);
+            var repo = RepoWith((10, Typed<AllowedCategory>(1)), (11, Typed<AllowedCategory>(1)), (20, Typed<OtherCategory>(2)));
+            var rules = new Mock<IPropertyTypeRules>();
+            rules.Setup(r => r.Allows(It.IsAny<System.Type>(), 1)).Returns(true);
+            var validator = ValidatorReturning(rules.Object);
 
-            var registry = CreateRegistry();
+            var list = SelectableList(CreateController(repo, validator).Selectable("10, 11, 20", 7, "Categories"));
 
-            var result = CreateController(repo, registry).Selectable("10");
-
-            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
-            Assert.True(list.Single().Selectable);
-            registry.Verify(
-                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
-                Times.Never);
-        }
-
-        [Fact]
-        public void Selectable_RestrictedTypeWins_EvenWhenTheTypeIsAlsoAllowed()
-        {
-            var repo = new Mock<IContentRepository>();
-            CategoryData category = new CategoryData { IsSelectable = true };
-            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out category)).Returns(true);
-
-            var registry = CreateRegistry();
-            // Restricted is evaluated first and short-circuits, so the allow-list is never consulted.
-            registry
-                .Setup(r => r.HasMatchedTypeIdentifier(
-                    typeof(CategoryData),
-                    It.Is<IEnumerable<string>>(ids => ids.Contains("blocked.type"))))
-                .Returns(true);
-
-            var result = CreateController(repo, registry)
-                .Selectable("10", allowedTypes: "allowed.type", restrictedTypes: "blocked.type");
-
-            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
-            Assert.False(list.Single().Selectable);
-            Assert.Equal(CategoryEditorController.TypeNotAllowedReason, list.Single().Reason);
+            Assert.Equal(new[] { true, true, false }, list.Select(x => x.Selectable));
+            rules.Verify(r => r.Allows(It.IsAny<System.Type>(), 1), Times.Once);
+            rules.Verify(r => r.Allows(It.IsAny<System.Type>(), 2), Times.Once);
         }
 
         [Fact]
         public void Selectable_IsSelectableTakesPrecedenceOverTheTypeCheck()
         {
-            var repo = new Mock<IContentRepository>();
-            CategoryData grouping = new CategoryData { IsSelectable = false };
-            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out grouping)).Returns(true);
+            var category = Typed<OtherCategory>(2);
+            category.IsSelectable = false;
+            var rules = new Mock<IPropertyTypeRules>();
+            var repo = RepoWith((10, category));
 
-            var registry = CreateRegistry();
+            var list = SelectableList(CreateController(repo, ValidatorReturning(rules.Object)).Selectable("10", 7, "Categories"));
 
-            var result = CreateController(repo, registry).Selectable("10", "some.allowed.type");
-
-            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
             Assert.False(list.Single().Selectable);
             // The more specific reason: the category itself is a grouping node, regardless of its type.
             Assert.Equal(CategoryEditorController.NotSelectableReason, list.Single().Reason);
-            registry.Verify(
-                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
-                Times.Never);
+            // A non-selectable (grouping) category is never type-checked, so HideDisallowedRootCategories
+            // keeps it and the allowed categories beneath it stay reachable.
+            rules.VerifyNoOtherCalls();
         }
 
         [Fact]
         public void Selectable_UnresolvableIds_StaySelectableAndSkipTheTypeCheck()
         {
-            var repo = new Mock<IContentRepository>();
-            CategoryData missing = null;
-            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), out missing)).Returns(false);
+            var rules = new Mock<IPropertyTypeRules>();
 
-            var registry = CreateRegistry();
+            var list = SelectableList(CreateController(RepoWith(), ValidatorReturning(rules.Object)).Selectable("999, not-a-link", 7, "Categories"));
 
-            var result = CreateController(repo, registry).Selectable("999, not-a-link", "some.allowed.type");
-
-            var list = Assert.IsType<List<CategorySelectableResponse>>(Assert.IsType<OkObjectResult>(result).Value);
             Assert.All(list, x => Assert.True(x.Selectable));
-            registry.Verify(
-                r => r.HasMatchedTypeIdentifier(It.IsAny<System.Type>(), It.IsAny<IEnumerable<string>>()),
-                Times.Never);
+            rules.VerifyNoOtherCalls();
+        }
+
+        // ---- CreatableTypes -------------------------------------------------------------------------
+
+        [Fact]
+        public void CreatableTypes_ListsAvailableCategoryTypesThePropertyAllows()
+        {
+            IContent parent = Category(5, "Root");
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<IContent>(It.Is<ContentReference>(c => c.ID == 5), out parent)).Returns(true);
+            var availability = new Mock<ContentTypeAvailabilityService>();
+            availability
+                .Setup(a => a.ListAvailable(parent, false, It.IsAny<IPrincipal>()))
+                .Returns(new List<ContentType>
+                {
+                    new ContentType { ID = 1, Name = "Allowed", ModelType = typeof(AllowedCategory) },
+                    new ContentType { ID = 2, Name = "Other", ModelType = typeof(OtherCategory) },
+                    new ContentType { ID = 3, Name = "Page", ModelType = typeof(PageData) }
+                });
+
+            var result = CreateController(repo, ValidatorAllowing(typeof(AllowedCategory)), availability: availability)
+                .CreatableTypes("5", 7, "Categories");
+
+            var type = Assert.Single(Assert.IsType<List<CategoryContentTypeResponse>>(Assert.IsType<OkObjectResult>(result).Value));
+            Assert.Equal(1, type.Id);
+        }
+
+        // IsSelectable is culture-specific, so it must be read in the editing language.
+        [Fact]
+        public void Selectable_LoadsCategoriesInTheRequestedLanguage()
+        {
+            LoaderOptions? used = null;
+            CategoryData category = new CategoryData { IsSelectable = false };
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<CategoryData>(It.IsAny<ContentReference>(), It.IsAny<LoaderOptions>(), out category))
+                .Callback(new TryGetCallback((ContentReference _, LoaderOptions options, out CategoryData c) => { used = options; c = category; }))
+                .Returns(true);
+
+            CreateController(repo).Selectable("10", language: "sv");
+
+            var languageOption = Assert.IsType<LanguageLoaderOption>(Assert.Single(used!));
+            Assert.Equal("sv", languageOption.Language.Name);
+        }
+
+        private delegate void TryGetCallback(ContentReference link, LoaderOptions options, out CategoryData content);
+
+        // ---- Children -------------------------------------------------------------------------------
+
+        [Fact]
+        public void Children_ListsReadableChildren_WithFullReferencesAndAPagedChildCheck()
+        {
+            var parent = Category(5, "Parent");
+            var readable = Category(10, "Readable", "catalog");
+            var hidden = Category(11, "Hidden");
+            var grandchild = Category(20, "Grandchild");
+            IContent parentContent = parent;
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<IContent>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>(), out parentContent)).Returns(true);
+            repo.Setup(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>()))
+                .Returns(new[] { readable, hidden });
+            repo.Setup(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), It.IsAny<LoaderOptions>(), 0, 1))
+                .Returns(new[] { grandchild });
+
+            var result = CreateController(repo, access: ReadAccessExcept(hidden)).Children("5");
+
+            var child = Assert.Single(Assert.IsType<List<CategoryChildResponse>>(Assert.IsType<OkObjectResult>(result).Value));
+            Assert.Equal("10__catalog", child.Id);
+            Assert.Equal("Readable", child.Name);
+            Assert.True(child.HasChildren);
+            // Only the paged overload is used for HasChildren, never a full listing of the grandchildren.
+            repo.Verify(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 10), It.IsAny<LoaderOptions>()), Times.Never);
+        }
+
+        [Fact]
+        public void Children_OfAParentTheUserCannotRead_ListsNothing()
+        {
+            var parent = Category(5, "Parent");
+            IContent parentContent = parent;
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<IContent>(It.IsAny<ContentReference>(), It.IsAny<LoaderOptions>(), out parentContent)).Returns(true);
+
+            var result = CreateController(repo, access: ReadAccessExcept(parent)).Children("5");
+
+            Assert.Empty(Assert.IsType<List<CategoryChildResponse>>(Assert.IsType<OkObjectResult>(result).Value));
+            repo.Verify(r => r.GetChildren<CategoryData>(It.IsAny<ContentReference>(), It.IsAny<LoaderOptions>()), Times.Never);
+        }
+
+        [Fact]
+        public void Create_WithALanguage_CreatesTheCategoryInThatLanguage()
+        {
+            var repo = new Mock<IContentRepository>();
+            var category = new CategoryData();
+            repo
+                .Setup(r => r.GetDefault<CategoryData>(It.IsAny<ContentReference>(), It.IsAny<int>(), It.IsAny<CultureInfo>()))
+                .Returns(category);
+            repo
+                .Setup(r => r.Save(It.IsAny<IContent>(), SaveAction.Publish, AccessLevel.Edit))
+                .Returns(new ContentReference(42));
+
+            CreateController(repo).Create(new CreateCategoryRequest { ParentLink = "5", Name = "Nyheter", ContentTypeId = 99, Language = "sv" });
+
+            repo.Verify(r => r.GetDefault<CategoryData>(
+                It.Is<ContentReference>(p => p.ID == 5),
+                99,
+                It.Is<CultureInfo>(c => c.Name == "sv")), Times.Once);
         }
 
         [Fact]

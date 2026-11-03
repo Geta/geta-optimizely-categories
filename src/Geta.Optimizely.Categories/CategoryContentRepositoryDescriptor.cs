@@ -27,7 +27,7 @@ namespace Geta.Optimizely.Categories
 
         public override string Name => LocalizationService.Current.GetString("/getacategories/treecomponent/title", "Categories");
 
-        public virtual string CreatingTypeIdentifier => typeof (CategoryData).FullName.ToLowerInvariant();
+        public virtual string CreatingTypeIdentifier => TypeIdentifier.Of(typeof(CategoryData));
 
         public override IEnumerable<Type> CreatableTypes => new[]
         {
@@ -81,7 +81,8 @@ namespace Geta.Optimizely.Categories
             HomeView.ViewName
         };
 
-        public override string SearchArea => "CMS/categories";
+        // Edit-mode search routes this repository's searches to the provider with this area.
+        public override string SearchArea => CategorySearchProvider.ProviderArea;
 
         public override string CustomNavigationWidget => "geta-optimizely-categories/component/CategoryNavigationTree";
     }

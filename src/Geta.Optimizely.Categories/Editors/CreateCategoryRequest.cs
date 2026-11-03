@@ -17,6 +17,12 @@ namespace Geta.Optimizely.Categories.Editors
 
         /// <summary>Content type id of the category to create (a subtype of CategoryData).</summary>
         public int ContentTypeId { get; set; }
+
+        /// <summary>
+        /// The editing language to create the category in (e.g. "sv"). Optional; without it CMS's
+        /// default content language is used.
+        /// </summary>
+        public string Language { get; set; }
     }
 
     /// <summary>Result returned to the picker so it can select the newly created category.</summary>
@@ -45,5 +51,21 @@ namespace Geta.Optimizely.Categories.Editors
         /// property's [AllowedTypes]). Null when the category is selectable.
         /// </summary>
         public string Reason { get; set; }
+    }
+
+    /// <summary>A category content type, returned by <see cref="CategoryEditorController.CreatableTypes"/>.</summary>
+    public class CategoryContentTypeResponse
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string DisplayName { get; set; }
+    }
+
+    /// <summary>A child category, returned by <see cref="CategoryEditorController.Children"/>.</summary>
+    public class CategoryChildResponse
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public bool HasChildren { get; set; }
     }
 }

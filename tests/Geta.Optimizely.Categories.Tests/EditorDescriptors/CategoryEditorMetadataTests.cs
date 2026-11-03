@@ -2,8 +2,16 @@
 // Licensed under Apache-2.0. See the LICENSE file in the project root for more information
 
 using System;
+using System.Collections.Generic;
+using EPiServer.Core;
 using EPiServer.DataAnnotations;
+using EPiServer.Framework.Localization;
+using EPiServer.Shell.ObjectEditing;
 using Geta.Optimizely.Categories.EditorDescriptors;
+using Microsoft.AspNetCore.Mvc.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
+using Moq;
 using Xunit;
 
 namespace Geta.Optimizely.Categories.Tests.EditorDescriptors
@@ -18,80 +26,64 @@ namespace Geta.Optimizely.Categories.Tests.EditorDescriptors
         {
         }
 
-        // ---- ResolvePropertyAttributes ------------------------------------------------------------
+        private interface IRegionCategory
+        {
+        }
+
+        // A real ExtendedMetadata whose Attributes are the property's own attribute list, the way
+        // CMS's metadata providers initialise it (InitializeFromAttributes).
+        private static ExtendedMetadata CreatePropertyMetadata(params Attribute[] propertyAttributes)
+        {
+            var defaultMetadata = (DefaultModelMetadata)new EmptyModelMetadataProvider()
+                .GetMetadataForType(typeof(IList<ContentReference>));
+            var metadata = new ExtendedMetadata(
+                defaultMetadata,
+                Mock.Of<IValidationAttributeAdapterProvider>(),
+                new Mock<ExtensibleMetadataProvider>(null!, null!, null!, null!).Object,
+                localizationService: Mock.Of<LocalizationService>());
+            metadata.InitializeFromAttributes(propertyAttributes);
+            return metadata;
+        }
+
+        // ---- ApplyAllowedTypes ----------------------------------------------------------------------
         //
-        // The regression guard for the defect that made [AllowedTypes] a no-op on the [Categories]
-        // path. CMS's ExtensibleMetadataProvider.ApplyMetadataAwareAttributes builds the
-        // DisplayMetadataProviderContext from ModelAttributes.GetAttributesForType(metadata.GetType())
-        // — the ExtendedMetadata CLR class's attributes, not the property's — so CategoriesAttribute
-        // received an attribute set that never contains AllowedTypesAttribute. Everything below the
-        // resolve step was already correct and unit-tested, which is exactly why the bug shipped: the
-        // tests exercised the pure helpers but not the wiring that feeds them.
+        // Reads the property's attributes from the metadata itself, the only source that carries
+        // [AllowedTypes] on both the [Categories] and the UIHint path.
 
         [Fact]
-        public void ResolvePropertyAttributes_WhenSuppliedSetHasTheAttribute_UsesIt()
+        public void ApplyAllowedTypes_ReadsTheAllowedTypesFromTheMetadata()
         {
-            var supplied = new Attribute[] { new AllowedTypesAttribute(typeof(BusinessAreaCategory)) };
-            var metadataAttributes = new Attribute[] { new AllowedTypesAttribute(typeof(CategoryData)) };
-
-            var result = CategoryEditorMetadata.ResolvePropertyAttributes(supplied, metadataAttributes);
-
-            Assert.Same(
-                supplied.OfType<AllowedTypesAttribute>().Single(),
-                result.OfType<AllowedTypesAttribute>().Single());
-        }
-
-        [Fact]
-        public void ResolvePropertyAttributes_WhenSuppliedSetLacksTheAttribute_FallsBackToMetadataAttributes()
-        {
-            // This is the [Categories] path: CMS hands us the metadata class's attributes, which carry
-            // no AllowedTypesAttribute. ExtendedMetadata.Attributes is the property's real set.
-            var supplied = new Attribute[] { new ObsoleteAttribute("irrelevant") };
-            var metadataAttributes = new Attribute[] { new AllowedTypesAttribute(typeof(BusinessAreaCategory)) };
-
-            var result = CategoryEditorMetadata.ResolvePropertyAttributes(supplied, metadataAttributes);
-
-            Assert.Equal(
+            var metadata = CreatePropertyMetadata(new AllowedTypesAttribute(
                 new[] { typeof(BusinessAreaCategory) },
-                CategoryEditorMetadata.ResolveAllowedTypes(result));
+                new[] { typeof(IRegionCategory) }));
+
+            CategoryEditorMetadata.ApplyAllowedTypes(metadata);
+
+            Assert.Equal(new[] { TypeIdentifier.Of(typeof(BusinessAreaCategory)) }, metadata.EditorConfiguration["AllowedTypes"]);
         }
 
         [Fact]
-        public void ResolvePropertyAttributes_WhenSuppliedSetIsNull_FallsBackToMetadataAttributes()
+        public void ApplyAllowedTypes_WithoutAnAllowList_DescribesThePropertyAsHoldingAnyCategory()
         {
-            var metadataAttributes = new Attribute[] { new AllowedTypesAttribute(typeof(BusinessAreaCategory)) };
+            var metadata = CreatePropertyMetadata();
 
-            var result = CategoryEditorMetadata.ResolvePropertyAttributes(null, metadataAttributes);
+            CategoryEditorMetadata.ApplyAllowedTypes(metadata);
 
-            Assert.Equal(
-                new[] { typeof(BusinessAreaCategory) },
-                CategoryEditorMetadata.ResolveAllowedTypes(result));
+            // The base type, which the picker treats as "no allow-list".
+            Assert.Equal(new[] { "geta.optimizely.categories.categorydata" }, metadata.EditorConfiguration["AllowedTypes"]);
+            Assert.Equal(new[] { "geta.optimizely.categories.categorydata" }, metadata.OverlayConfiguration["AllowedDndTypes"]);
         }
 
         [Fact]
-        public void ResolvePropertyAttributes_WithNothingAvailable_ReturnsEmptyAndDefaultsToCategoryData()
+        public void ApplyAllowedTypes_WithOnlyRestrictedTypes_KeepsTheContentDataDefaultAllowList()
         {
-            var result = CategoryEditorMetadata.ResolvePropertyAttributes(null, null);
+            // [AllowedTypes(RestrictedTypes = ...)] leaves AllowedTypes at its IContentData default, which
+            // the picker treats as "no allow-list".
+            var metadata = CreatePropertyMetadata(new AllowedTypesAttribute { RestrictedTypes = new[] { typeof(BusinessAreaCategory) } });
 
-            Assert.Empty(result);
-            Assert.Equal(new[] { typeof(CategoryData) }, CategoryEditorMetadata.ResolveAllowedTypes(result));
-        }
+            CategoryEditorMetadata.ApplyAllowedTypes(metadata);
 
-        [Fact]
-        public void ResolvePropertyAttributes_RestrictedTypesSurviveTheFallback()
-        {
-            var metadataAttributes = new Attribute[]
-            {
-                new AllowedTypesAttribute(
-                    new[] { typeof(CategoryData) },
-                    new[] { typeof(BusinessAreaCategory) })
-            };
-
-            var result = CategoryEditorMetadata.ResolvePropertyAttributes(null, metadataAttributes);
-
-            Assert.Equal(
-                new[] { typeof(BusinessAreaCategory) },
-                CategoryEditorMetadata.ResolveRestrictedTypes(result));
+            Assert.Equal(new[] { "episerver.core.icontentdata" }, metadata.EditorConfiguration["AllowedTypes"]);
         }
 
         // ---- allowed / restricted type resolution -------------------------------------------------
@@ -123,6 +115,19 @@ namespace Geta.Optimizely.Categories.Tests.EditorDescriptors
             var result = CategoryEditorMetadata.ResolveAllowedTypes(attributes);
 
             Assert.Equal(new[] { typeof(CategoryData) }, result);
+        }
+
+        [Fact]
+        public void ResolveAllowedTypes_KeepsInterfaces_WhichPublishValidationMatchesToo()
+        {
+            var attributes = new Attribute[]
+            {
+                new AllowedTypesAttribute(typeof(BusinessAreaCategory), typeof(IRegionCategory), typeof(string))
+            };
+
+            var result = CategoryEditorMetadata.ResolveAllowedTypes(attributes);
+
+            Assert.Equal(new[] { typeof(BusinessAreaCategory), typeof(IRegionCategory) }, result);
         }
 
         [Fact]

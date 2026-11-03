@@ -80,6 +80,7 @@ namespace Geta.Optimizely.Categories.Configuration
             services.AddSingleton<ICategoryContentLoader, DefaultCategoryContentLoader>();
             services.AddScoped<ICategoryRouteHelper, DefaultCategoryRouteHelper>();
             services.AddSingleton<CategorySettings>();
+            services.AddTransient<CategoryTypesPropertyValidator>();
             services.AddOptions<CategoriesOptions>().Configure<IConfiguration>((options, configuration) =>
             {
                 setupAction(options);

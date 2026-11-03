@@ -13,12 +13,14 @@ import * as api from "./categoryApi.js";
 /**
  * @param {HTMLElement} host
  * @param {Array<string>} roots         Root content-link ids to render at the top level.
- * @param {object} [opts]               Forwarded to api.getChildren — { allowedTypes, restrictedTypes, typeIdentifier }
+ * @param {object} [opts]               { ownerContentTypeId?, propertyName?, hideDisallowedRoots? },
+ *                                      forwarded to api.getSelectable to decide which listed nodes may be picked.
  * @param {Set<string>} selected        Initial selection (will be reflected in checkboxes).
  * @param {(id:string, checked:boolean) => void} onToggle
+ * @param {Set<string>} [preselected]   Ids selected when the dialog opened; disabling never unticks these.
  * @returns {{ setSelected: (ids: Iterable<string>) => void, destroy: () => void }}
  */
-export function renderTree(host, roots, opts, selected, onToggle) {
+export function renderTree(host, roots, opts, selected, onToggle, preselected = selected) {
     host.innerHTML = "";
     host.classList.add("geta-cat-tree");
 
@@ -76,14 +78,14 @@ export function renderTree(host, roots, opts, selected, onToggle) {
                 loading = true;
                 renderLoading(childHost, depth);
                 try {
-                    const kids = await api.getChildren(node.id, opts);
+                    const kids = await api.getChildren(node.id);
                     if (destroyed) return;
                     childHost.innerHTML = "";
                     if (!kids || kids.length === 0) {
                         renderEmpty(childHost, depth);
                     } else {
                         kids.forEach(k => childHost.appendChild(makeNode(k, depth + 1)));
-                        applySelectability(kids);
+                        applyLevelSelectability(kids);
                     }
                     loaded = true;
                 } catch (err) {
@@ -97,42 +99,39 @@ export function renderTree(host, roots, opts, selected, onToggle) {
         return wrap;
     }
 
-    // Issue #56 points 6 and 7: the CMS 13 shell stores expose neither IsSelectable nor the property's
-    // [AllowedTypes], so after a level of nodes is rendered we ask the package endpoint which are
-    // selectable and disable the checkboxes of the ones that are not. Crucially they stay in the tree
-    // and remain expandable, so a disallowed "container" category is still a path to the allowed
-    // categories nested under it. Never changes an already-checked value — existing selections are
-    // removed via the chips, not here.
-    async function applySelectability(nodes) {
-        const ids = (nodes || []).map(n => n.id);
-        if (ids.length === 0) return;
-        const map = await api.getSelectable(ids, opts);
-        if (destroyed) return;
-        ids.forEach(id => {
-            const verdict = map[String(id)];
-            if (verdict && verdict.selectable === false) {
-                const cb = checkboxes.get(id);
-                if (!cb) return;
-                cb.disabled = true;
-                cb.title = api.selectabilityMessage(verdict.reason);
-                cb.closest?.(".geta-cat-tree__row")?.classList.add("geta-cat-tree__row--unselectable");
-            }
+    function applyLevelSelectability(nodes, verdicts) {
+        applySelectability((nodes || []).map(n => n.id), {
+            opts,
+            verdicts,
+            checkboxFor: id => checkboxes.get(id),
+            preselected,
+            onUncheck: id => { if (typeof onToggle === "function") onToggle(id, false); },
+            isStale: () => destroyed
         });
     }
 
     (async () => {
         renderLoading(host, 0);
         try {
-            const lists = await Promise.all((roots || []).map(rootId => api.getChildren(rootId, opts)));
+            const lists = await Promise.all((roots || []).map(rootId => api.getChildren(rootId)));
             if (destroyed) return;
+            let flat = lists.reduce((acc, list) => acc.concat(list || []), []);
+            let verdicts;
+            if (flat.length > 0 && opts && opts.hideDisallowedRoots) {
+                // HideDisallowedRootCategories: drop selectable top-level categories whose type the property
+                // doesn't allow before any is shown. Non-selectable (grouping) categories stay, so the
+                // allowed categories beneath them remain reachable.
+                verdicts = await api.getSelectable(flat.map(n => n.id), opts);
+                if (destroyed) return;
+                flat = flat.filter(n => verdicts[String(n.id)]?.reason !== "typeNotAllowed");
+            }
             host.innerHTML = "";
-            const flat = lists.reduce((acc, list) => acc.concat(list || []), []);
             if (flat.length === 0) {
                 renderEmpty(host, 0);
                 return;
             }
             flat.forEach(n => host.appendChild(makeNode(n, 0)));
-            applySelectability(flat);
+            applyLevelSelectability(flat, verdicts);
         } catch (err) {
             if (!destroyed) {
                 host.innerHTML = "";
@@ -151,6 +150,40 @@ export function renderTree(host, roots, opts, selected, onToggle) {
             checkboxes.clear();
         }
     };
+}
+
+/**
+ * Disables the checkboxes of rendered rows (a tree level or search results) that may not be picked
+ * (issue #56 points 6 and 7). Disabled rows stay expandable, so a disallowed container still leads to
+ * allowed categories beneath it. Pre-existing selections are left alone; a box ticked while the
+ * lookup was in flight is unticked again and reported through onUncheck.
+ *
+ * @param {Array<string>} ids
+ * @param {object} options
+ * @param {object} [options.opts]       Type options forwarded to api.getSelectable.
+ * @param {object} [options.verdicts]   A getSelectable() map already fetched for these ids.
+ * @param {(id: string) => (HTMLInputElement|undefined)} options.checkboxFor
+ * @param {Set<string>} options.preselected  Ids selected when the dialog opened; these are never unticked.
+ * @param {(id: string) => void} options.onUncheck  Called for each box unticked here.
+ * @param {() => boolean} options.isStale  True once the rows have been replaced or destroyed.
+ */
+export async function applySelectability(ids, { opts, verdicts, checkboxFor, preselected, onUncheck, isStale }) {
+    if (!ids || ids.length === 0) return;
+    const map = verdicts || await api.getSelectable(ids, opts);
+    if (isStale()) return;
+    ids.forEach(rawId => {
+        const id = String(rawId);
+        if (api.isSelectable(map, id)) return;
+        const cb = checkboxFor(id);
+        if (!cb) return;
+        cb.disabled = true;
+        cb.title = api.selectabilityMessage(map[id].reason);
+        cb.closest?.(".geta-cat-tree__row")?.classList.add("geta-cat-tree__row--unselectable");
+        if (cb.checked && !preselected.has(id)) {
+            cb.checked = false;
+            onUncheck(id);
+        }
+    });
 }
 
 function renderLoading(host, depth) {
