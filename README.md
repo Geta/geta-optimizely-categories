@@ -144,6 +144,10 @@ In addition, the configuration can be read from the `appsettings.json`:
 
 The configuration from the `appsettings.json` will override any configuration set in Startup.cs.
 
+### Translating the category picker
+
+The category picker is shown in the editor's UI language. English, Swedish, Norwegian and Finnish are included; other UI languages get the English texts. The texts are under `/getacategories/editor` in the package's [lang file](src/Geta.Optimizely.Categories/lang/geta.epicategories.xml), so a site can add a language, or change a text, with the same keys in its own lang files.
+
 ### ICategorizableContent interface
 
 There is a context menu in the selector where you quickly can create and auto publish a new category and automatically get back to the selector with the new category selected:

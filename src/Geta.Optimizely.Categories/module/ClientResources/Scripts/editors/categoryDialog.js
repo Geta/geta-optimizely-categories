@@ -16,7 +16,6 @@
 //   dlg.destroy();
 
 export function createDialog(title, labels) {
-    const lbls = labels || {};
 
     const overlay = document.createElement("div");
     overlay.className = "geta-categories-dialog__overlay";
@@ -47,13 +46,13 @@ export function createDialog(title, labels) {
     const cancel = document.createElement("button");
     cancel.type = "button";
     cancel.className = "geta-categories-dialog__cancel";
-    cancel.textContent = lbls.cancel || "Cancel";
+    cancel.textContent = labels.cancel;
     foot.appendChild(cancel);
 
     const ok = document.createElement("button");
     ok.type = "button";
     ok.className = "geta-categories-dialog__ok";
-    ok.textContent = lbls.ok || "OK";
+    ok.textContent = labels.ok;
     foot.appendChild(ok);
 
     panel.appendChild(foot);

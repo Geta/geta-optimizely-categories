@@ -31,6 +31,30 @@
                 <title>Categories</title>
                 <description>Category management</description>
             </treecomponent>
+            <editor>
+                <selectbutton>Select categories</selectbutton>
+                <empty>No categories selected</empty>
+                <remove>Remove</remove>
+                <popuptitle>Select categories</popuptitle>
+                <ok>OK</ok>
+                <cancel>Cancel</cancel>
+                <searchplaceholder>Search</searchplaceholder>
+                <createbutton>Create category</createbutton>
+                <createprompt>Name of the new category</createprompt>
+                <createsave>Create</createsave>
+                <createnamerequired>Please enter a name.</createnamerequired>
+                <createnotypes>No creatable category type is available under the selected root.</createnotypes>
+                <createfailed>Could not create the category.</createfailed>
+                <searching>Searching…</searching>
+                <nomatches>No matches</nomatches>
+                <searchfailed>Search failed</searchfailed>
+                <loading>Loading…</loading>
+                <nocategories>No categories</nocategories>
+                <loadfailed>Failed to load</loadfailed>
+                <typenotallowed>This category type cannot be selected for this property</typenotallowed>
+                <notselectable>This category is not selectable</notselectable>
+                <unknownerror>unknown error</unknownerror>
+            </editor>
         </getacategories>
     </language>
     <language name="Swedish" id="sv">
@@ -64,6 +88,30 @@
                 <title>Kategorier</title>
                 <description>Hantera kategorier</description>
             </treecomponent>
+            <editor>
+                <selectbutton>Välj kategorier</selectbutton>
+                <empty>Inga kategorier valda</empty>
+                <remove>Ta bort</remove>
+                <popuptitle>Välj kategorier</popuptitle>
+                <ok>OK</ok>
+                <cancel>Avbryt</cancel>
+                <searchplaceholder>Sök</searchplaceholder>
+                <createbutton>Skapa kategori</createbutton>
+                <createprompt>Namn på den nya kategorin</createprompt>
+                <createsave>Skapa</createsave>
+                <createnamerequired>Ange ett namn.</createnamerequired>
+                <createnotypes>Det finns ingen kategorityp som kan skapas under den valda roten.</createnotypes>
+                <createfailed>Det gick inte att skapa kategorin.</createfailed>
+                <searching>Söker…</searching>
+                <nomatches>Inga träffar</nomatches>
+                <searchfailed>Sökningen misslyckades</searchfailed>
+                <loading>Laddar…</loading>
+                <nocategories>Inga kategorier</nocategories>
+                <loadfailed>Det gick inte att ladda</loadfailed>
+                <typenotallowed>Den här kategoritypen kan inte väljas för den här egenskapen</typenotallowed>
+                <notselectable>Den här kategorin kan inte väljas</notselectable>
+                <unknownerror>okänt fel</unknownerror>
+            </editor>
         </getacategories>
     </language>
     <language name="Norwegian" id="no">
@@ -97,6 +145,30 @@
                 <title>Kategorier</title>
                 <description>Håndtere kategorier</description>
             </treecomponent>
+            <editor>
+                <selectbutton>Velg kategorier</selectbutton>
+                <empty>Ingen kategorier valgt</empty>
+                <remove>Fjern</remove>
+                <popuptitle>Velg kategorier</popuptitle>
+                <ok>OK</ok>
+                <cancel>Avbryt</cancel>
+                <searchplaceholder>Søk</searchplaceholder>
+                <createbutton>Opprett kategori</createbutton>
+                <createprompt>Navn på den nye kategorien</createprompt>
+                <createsave>Opprett</createsave>
+                <createnamerequired>Skriv inn et navn.</createnamerequired>
+                <createnotypes>Ingen kategoritype kan opprettes under den valgte roten.</createnotypes>
+                <createfailed>Kunne ikke opprette kategorien.</createfailed>
+                <searching>Søker…</searching>
+                <nomatches>Ingen treff</nomatches>
+                <searchfailed>Søket mislyktes</searchfailed>
+                <loading>Laster…</loading>
+                <nocategories>Ingen kategorier</nocategories>
+                <loadfailed>Kunne ikke laste inn</loadfailed>
+                <typenotallowed>Denne kategoritypen kan ikke velges for denne egenskapen</typenotallowed>
+                <notselectable>Denne kategorien kan ikke velges</notselectable>
+                <unknownerror>ukjent feil</unknownerror>
+            </editor>
         </getacategories>
     </language>
     <language name="Finnish" id="fi">
@@ -130,6 +202,30 @@
                 <title>Kategoriat</title>
                 <description>Geta kategorioiden ylläpito</description>
             </treecomponent>
+            <editor>
+                <selectbutton>Valitse kategoriat</selectbutton>
+                <empty>Ei valittuja kategorioita</empty>
+                <remove>Poista</remove>
+                <popuptitle>Valitse kategoriat</popuptitle>
+                <ok>OK</ok>
+                <cancel>Peruuta</cancel>
+                <searchplaceholder>Hae</searchplaceholder>
+                <createbutton>Luo kategoria</createbutton>
+                <createprompt>Uuden kategorian nimi</createprompt>
+                <createsave>Luo</createsave>
+                <createnamerequired>Anna nimi.</createnamerequired>
+                <createnotypes>Valitun juuren alle ei voi luoda yhtään kategoriatyyppiä.</createnotypes>
+                <createfailed>Kategorian luominen epäonnistui.</createfailed>
+                <searching>Haetaan…</searching>
+                <nomatches>Ei osumia</nomatches>
+                <searchfailed>Haku epäonnistui</searchfailed>
+                <loading>Ladataan…</loading>
+                <nocategories>Ei kategorioita</nocategories>
+                <loadfailed>Lataus epäonnistui</loadfailed>
+                <typenotallowed>Tätä kategoriatyyppiä ei voi valita tähän ominaisuuteen</typenotallowed>
+                <notselectable>Tätä kategoriaa ei voi valita</notselectable>
+                <unknownerror>tuntematon virhe</unknownerror>
+            </editor>
         </getacategories>
     </language>
 </languages>

@@ -11,24 +11,24 @@
 // names       : Map<id, displayName> — names already resolved via api.resolve
 // readOnly    : when true, omit the remove affordance
 // onRemove    : callback(id) when a chip's remove button is clicked
-// emptyText   : optional text shown when ids is empty
+// labels      : the editor's texts (labels.js createLabels)
 
-export function renderChips(host, ids, names, readOnly, onRemove, emptyText) {
+export function renderChips(host, ids, names, readOnly, onRemove, labels) {
     host.innerHTML = "";
     host.classList.add("geta-categories__chips");
 
     if (!ids || ids.length === 0) {
         const empty = document.createElement("div");
         empty.className = "geta-categories__empty";
-        empty.textContent = emptyText || "No categories selected";
+        empty.textContent = labels.label("empty");
         host.appendChild(empty);
         return;
     }
 
-    ids.forEach(id => host.appendChild(buildChip(id, names, readOnly, onRemove)));
+    ids.forEach(id => host.appendChild(buildChip(id, names, readOnly, onRemove, labels.label("remove"))));
 }
 
-function buildChip(id, names, readOnly, onRemove) {
+function buildChip(id, names, readOnly, onRemove, removeText) {
     const chip = document.createElement("span");
     chip.className = "geta-categories__chip";
     chip.setAttribute("data-category-id", id);
@@ -44,8 +44,8 @@ function buildChip(id, names, readOnly, onRemove) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "geta-categories__chip-remove";
-        btn.setAttribute("aria-label", "Remove " + displayName);
-        btn.title = "Remove";
+        btn.setAttribute("aria-label", removeText + " " + displayName);
+        btn.title = removeText;
         btn.textContent = "×"; // ×
         btn.addEventListener("click", () => onRemove(id));
         chip.appendChild(btn);
