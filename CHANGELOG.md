@@ -4,8 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `ICategoryContentLoader.Get<T>` overloads that take a `CultureInfo` or `LoaderOptions` ([#49](https://github.com/Geta/geta-optimizely-categories/issues/49)). They have default implementations, so existing custom loaders keep compiling.
+
 ### Fixed
 
+- Category routing reads categories across several URL segments ([#54](https://github.com/Geta/geta-optimizely-categories/issues/54)): with `/` as `CategorySeparator` (`/articles/sports/news/`), and category paths with `UseUrlPathForCategoryRetrieval`. Only the first segment was read before. A segment after the categories, such as an action, is left to route.
+- When a parent holds more than one categories root (for example after an import), the oldest is always used ([#48](https://github.com/Geta/geta-optimizely-categories/issues/48)). Which one was used depended on CMS's child order.
+- The `Description` and `IsSelectable` captions are translated on category types that derive from `CategoryData`, not only on `CategoryData` itself.
 - In the CMS 13.3 side-by-side edit view, the category picker no longer reverts to the published selection after the first change to a published page, and the next change no longer builds on the reverted selection ([#62](https://github.com/Geta/geta-optimizely-categories/issues/62)).
 - The package's translations (`lang/geta.epicategories.xml`) are now embedded in the assembly, so category labels are translated again ([#43](https://github.com/Geta/geta-optimizely-categories/issues/43), [#44](https://github.com/Geta/geta-optimizely-categories/pull/44)).
 - The category picker is shown in the editor's UI language (English, Swedish, Norwegian and Finnish are included); since 2.0.0 it was English only. Texts set per property in the editor settings (`selectLabel`, `popupTitle` and so on) still take precedence.

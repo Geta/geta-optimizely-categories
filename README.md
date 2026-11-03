@@ -106,6 +106,7 @@ This is a **source-only** change — stored category references are not affected
 
 - CategorySeparator - defaults to **"__"**
   - i.e. "/articles/entertainment__sports/"
+  - "/" also works: "/articles/entertainment/sports/"
 - DisableCategoryAsLinkableType - defaults to **false**
   - Allows you to disable linking to categories in the 'Create link' modal window in the CMS (e.g. in TinyMCE or on a LinkItem)
 - HideDisallowedRootCategories - defaults to **false**
@@ -236,7 +237,11 @@ public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> curre
 }
 ```
 
-You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment".
+You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment". A URL segment after the categories, such as an action (/articles/entertainment__sports/feed/), is left to route as usual.
+
+### More than one categories root
+
+The package keeps one categories root under each assets root ("For All Sites" / "For This Site"). If an import adds another, the oldest is used. Categories imported into another root, including a root nested under the main one, don't show in the picker until you move them under the root in use. You can do that in Settings → Set Access Rights, or with `IContentRepository.Move`.
 
 	
 There are a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using EPiServer;
 using EPiServer.Core;
@@ -50,57 +51,113 @@ namespace Geta.Optimizely.Categories.Routing
                 return null;
             }
 
-            var nextSegment = segmentContext.GetNextSegment();
-            if (nextSegment.Next.IsEmpty)
+            var pathSegments = ReadPathSegments(segmentContext);
+            if (pathSegments.Count == 0)
             {
                 return null;
             }
 
-            var remainingPath = nextSegment.Next.ToString().TrimEnd(_trailingSlash[0]);
+            var preferredCulture = (content as ILocale)?.Language ?? ContentLanguage.PreferredCulture;
 
-            if (!string.IsNullOrWhiteSpace(remainingPath))
+            // Issue #54: categories may span several URL segments - with "/" as the separator, or as a
+            // category path for UseUrlPathForCategoryRetrieval. Take the longest run of leading segments
+            // that are all categories, so a segment after them (e.g. an action) is left to route.
+            for (var count = pathSegments.Count; count > 0; count--)
             {
-                var localizableContent = content as ILocale;
-                var preferredCulture = localizableContent?.Language ?? ContentLanguage.PreferredCulture;
-                var segments = remainingPath.Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries);
-
-                var categoryUrlSegments = new List<string>();
-                var categoriesFound = false;
-
-                foreach (var segment in segments)
+                var categories = ResolveAll(pathSegments.Take(count).Select(s => s.Text).ToList(), preferredCulture);
+                if (categories != null)
                 {
-                    if (Configuration.UseUrlPathForCategoryRetrieval)
-                    {
-                        var category = CategoryLoader.GetCategoryByPath<CategoryData>(segment, preferredCulture);
-                        if (category != null)
-                        {
-                            categoryUrlSegments.Add(segment);
-                            categoriesFound = true;
-                        }
-                    }
-                    else
-                    {
-                        var urlSegment = segment.Contains(_trailingSlash) ? segment.Split(_trailingSlash).Last() : segment;
-                        var category = CategoryLoader.GetFirstBySegment<CategoryData>(urlSegment, preferredCulture);
-
-                        if (category != null)
-                        {
-                            categoryUrlSegments.Add(urlSegment);
-                            categoriesFound = true;
-                        }
-                    }
-                }
-
-                if (categoriesFound)
-                {
-                    // Consume all remaining segments by advancing to the end of the next segment.
-                    // segmentContext.RemainingSegments is updated by GetNextSegment().
-                    HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categoryUrlSegments.Distinct().ToArray());
-                    return content;
+                    return Matched(content, segmentContext, categories, pathSegments[count - 1].Remaining);
                 }
             }
 
-            return null;
+            // As before: the first segment alone, where unknown tokens between separators are ignored.
+            var lenient = ResolveAny(pathSegments[0].Text, preferredCulture);
+            return lenient.Count > 0
+                ? Matched(content, segmentContext, lenient, pathSegments[0].Remaining)
+                : null;
+        }
+
+        private object Matched(
+            ICategoryRoutableContent content,
+            UrlResolverContext segmentContext,
+            IEnumerable<string> categories,
+            ReadOnlyMemory<char> remaining)
+        {
+            segmentContext.RemainingSegments = remaining;
+            HttpContext.Request.RouteValues.Add(CategoryRoutingConstants.CurrentCategories, categories.Distinct().ToArray());
+            return content;
+        }
+
+        // The segments of the path not yet routed, each with the path that remains after it.
+        private static List<(string Text, ReadOnlyMemory<char> Remaining)> ReadPathSegments(UrlResolverContext segmentContext)
+        {
+            var segments = new List<(string Text, ReadOnlyMemory<char> Remaining)>();
+            var remaining = segmentContext.RemainingSegments;
+
+            // GetNextSegment falls back to RemainingSegments when handed an empty path, so stop before that.
+            while (!remaining.IsEmpty)
+            {
+                var segment = segmentContext.GetNextSegment(remaining);
+                if (segment.Next.IsEmpty)
+                {
+                    break;
+                }
+
+                segments.Add((segment.Next.ToString(), segment.Remaining));
+                remaining = segment.Remaining;
+            }
+
+            return segments;
+        }
+
+        // The category tokens in these path segments, or null unless every one of them is a category.
+        private List<string> ResolveAll(IReadOnlyList<string> pathSegments, CultureInfo culture)
+        {
+            var tokens = Tokens(pathSegments);
+            var categories = new List<string>();
+
+            foreach (var token in tokens)
+            {
+                if (!IsCategory(token, culture))
+                {
+                    return null;
+                }
+
+                categories.Add(token);
+            }
+
+            return categories.Count > 0 ? categories : null;
+        }
+
+        // The category tokens in a single path segment that are categories.
+        private List<string> ResolveAny(string pathSegment, CultureInfo culture)
+        {
+            return Tokens(new[] { pathSegment }).Where(token => IsCategory(token, culture)).ToList();
+        }
+
+        private IEnumerable<string> Tokens(IReadOnlyList<string> pathSegments)
+        {
+            if (CategorySeparator == _trailingSlash)
+            {
+                // Each segment is one category - or, for path retrieval, the segments form one path.
+                return Configuration.UseUrlPathForCategoryRetrieval
+                    ? new[] { string.Join(_trailingSlash, pathSegments) }
+                    : pathSegments;
+            }
+
+            var tokens = Configuration.UseUrlPathForCategoryRetrieval
+                ? string.Join(_trailingSlash, pathSegments).Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries)
+                : pathSegments.SelectMany(segment => segment.Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries));
+
+            return tokens.Select(token => token.Trim('/')).Where(token => token.Length > 0);
+        }
+
+        private bool IsCategory(string token, CultureInfo culture)
+        {
+            return Configuration.UseUrlPathForCategoryRetrieval
+                ? CategoryLoader.GetCategoryByPath<CategoryData>(token, culture) != null
+                : CategoryLoader.GetFirstBySegment<CategoryData>(token, culture) != null;
         }
 
         private bool CategoriesResolved()

@@ -1,6 +1,7 @@
 // Copyright (c) Geta Digital. All rights reserved.
 // Licensed under Apache-2.0. See the LICENSE file in the project root for more information
 
+using System.Collections.Generic;
 using System.Linq;
 using EPiServer;
 using EPiServer.Core;
@@ -35,7 +36,7 @@ namespace Geta.Optimizely.Categories.Extensions
                 LanguageLoaderOption.FallbackWithMaster()
             };
 
-            var rootCategory = contentRepository.GetChildren<CategoryRoot>(parentLink, loaderOptions).FirstOrDefault();
+            var rootCategory = SelectCategoriesRoot(contentRepository.GetChildren<CategoryRoot>(parentLink, loaderOptions));
 
             if (rootCategory != null)
             {
@@ -46,6 +47,19 @@ namespace Geta.Optimizely.Categories.Extensions
             rootCategory.Name = name;
             rootCategory.RouteSegment = routeSegment;
             return contentRepository.Save(rootCategory, SaveAction.Publish, AccessLevel.NoAccess);
+        }
+
+        /// <summary>
+        /// The categories root to use when a parent holds more than one (issue #48, e.g. after an
+        /// import): always the oldest, so every request, the picker and routing agree on the same root.
+        /// CMS's child order is not guaranteed to be stable between such roots.
+        /// </summary>
+        internal static CategoryRoot SelectCategoriesRoot(IEnumerable<CategoryRoot> roots)
+        {
+            return roots?
+                .Where(root => root?.ContentLink != null)
+                .OrderBy(root => root.ContentLink.ID)
+                .FirstOrDefault();
         }
     }
 }

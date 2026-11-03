@@ -3,13 +3,31 @@
 
 using System.Collections.Generic;
 using System.Globalization;
+using EPiServer;
 using EPiServer.Core;
+using EPiServer.ServiceLocation;
 
 namespace Geta.Optimizely.Categories
 {
     public interface ICategoryContentLoader
     {
         T Get<T>(ContentReference categoryLink) where T : CategoryData;
+
+        /// <summary>Loads a category in the given language.</summary>
+        /// <remarks>
+        /// The default implementation keeps existing <see cref="ICategoryContentLoader"/> implementations
+        /// compiling; <see cref="DefaultCategoryContentLoader"/> provides its own.
+        /// </remarks>
+        T Get<T>(ContentReference categoryLink, CultureInfo culture) where T : CategoryData
+            => Get<T>(categoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
+
+        /// <summary>Loads a category with the given loader options.</summary>
+        /// <remarks>
+        /// The default implementation keeps existing <see cref="ICategoryContentLoader"/> implementations
+        /// compiling; <see cref="DefaultCategoryContentLoader"/> provides its own.
+        /// </remarks>
+        T Get<T>(ContentReference categoryLink, LoaderOptions loaderOptions) where T : CategoryData
+            => ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(categoryLink, loaderOptions);
 
         IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink) where T : CategoryData;
 
