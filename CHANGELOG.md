@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Category routing reads categories across several URL segments ([#54](https://github.com/Geta/geta-optimizely-categories/issues/54)): with `/` as `CategorySeparator` (`/articles/sports/news/`), and category paths with `UseUrlPathForCategoryRetrieval`. Only the first segment was read before. A segment after the categories, such as an action, is left to route.
+- Category routing reads categories across several URL segments when the configuration calls for it ([#54](https://github.com/Geta/geta-optimizely-categories/issues/54)): with `/` as `CategorySeparator` (`/articles/sports/news/`), and category paths with `UseUrlPathForCategoryRetrieval`. Only the first segment was read before. With the default `__` separator nothing changes: categories are listed in one segment (`/articles/sports__news/`). A segment after the categories, such as an action, is left to route.
 - When a parent holds more than one categories root (for example after an import), the oldest is always used ([#48](https://github.com/Geta/geta-optimizely-categories/issues/48)). Which one was used depended on CMS's child order.
 - The `Description` and `IsSelectable` captions are translated on category types that derive from `CategoryData`, not only on `CategoryData` itself.
 - In the CMS 13.3 side-by-side edit view, the category picker no longer reverts to the published selection after the first change to a published page, and the next change no longer builds on the reverted selection ([#62](https://github.com/Geta/geta-optimizely-categories/issues/62)).

@@ -115,6 +115,20 @@ namespace Geta.Optimizely.Categories.Tests.Routing
             Assert.Equal("Index/", context.RemainingSegments.ToString());
         }
 
+        // Unchanged from before #54: with the default separator, several categories are written in one
+        // segment ("sports__news"), so a second segment is not read as a category even when it is one.
+        [Fact]
+        public void TheDefaultSeparator_ReadsOnlyTheFirstSegment_EvenWhenTheNextIsACategory()
+        {
+            Categories("sports", "news");
+            var context = ContextFor("sports/news/");
+
+            CreateRouter().RoutePartial(Page(), context);
+
+            Assert.Equal(new[] { "sports" }, CurrentCategories());
+            Assert.Equal("news/", context.RemainingSegments.ToString());
+        }
+
         [Fact]
         public void UrlPathRetrieval_ResolvesACategoryPathAcrossSegments()
         {

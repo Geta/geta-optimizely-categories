@@ -59,10 +59,13 @@ namespace Geta.Optimizely.Categories.Routing
 
             var preferredCulture = (content as ILocale)?.Language ?? ContentLanguage.PreferredCulture;
 
-            // Issue #54: categories may span several URL segments - with "/" as the separator, or as a
-            // category path for UseUrlPathForCategoryRetrieval. Take the longest run of leading segments
-            // that are all categories, so a segment after them (e.g. an action) is left to route.
-            for (var count = pathSegments.Count; count > 0; count--)
+            // Issue #54: categories span several URL segments only with "/" as the separator, or as a
+            // category path for UseUrlPathForCategoryRetrieval. Then take the longest run of leading
+            // segments that are all categories, so a segment after them (e.g. an action) is left to route.
+            // With any other separator, categories are listed in one segment ("sports__news"), so only
+            // the first segment is read, as before: "/sports/news/" stays the category "sports".
+            var maxSegments = SpansSegments ? pathSegments.Count : 1;
+            for (var count = maxSegments; count > 0; count--)
             {
                 var categories = ResolveAll(pathSegments.Take(count).Select(s => s.Text).ToList(), preferredCulture);
                 if (categories != null)
@@ -77,6 +80,8 @@ namespace Geta.Optimizely.Categories.Routing
                 ? Matched(content, segmentContext, lenient, pathSegments[0].Remaining)
                 : null;
         }
+
+        private bool SpansSegments => CategorySeparator == _trailingSlash || Configuration.UseUrlPathForCategoryRetrieval;
 
         private object Matched(
             ICategoryRoutableContent content,
