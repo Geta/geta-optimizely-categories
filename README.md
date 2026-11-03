@@ -239,21 +239,27 @@ public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> curre
 
 You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment". A URL segment after the categories, such as an action (/articles/entertainment__sports/feed/), is left to route as usual.
 
-With `UseUrlPathForCategoryRetrieval`, each category is written as its full path from the categories root, including the root's own URL segment: /articles/categories/sports/football/ (categories separated with the category separator, as above).
+Every action that should answer a category URL needs the `IList<CategoryData> currentCategories` parameter, even if it doesn't use it: CMS only picks an action that has a parameter for each route value. With `Feed(ArticleListPage currentPage)` alone, /articles/entertainment__sports/feed/ returns 404.
+
+With `UseUrlPathForCategoryRetrieval`, each category is written as its full path from the categories root, including the root's own URL segment: /articles/categories/sports/football/. The URL helpers below write category paths this way too. Categories are separated with the category separator, as above; with `/` as the separator, a URL holds one category path. Every category in the URL has to exist: unlike URL segments, an unknown category path isn't skipped.
 
 ### Sort order
 
-Categories are listed by their **Sort index** (`SortIndex`, lower first), then by name, in the picker and its search results, and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. Every category starts at 0, so without sort indexes the order stays alphabetical. To list categories in the same order elsewhere, use `InCategoryOrder()`:
+Categories are listed by their **Sort index** (`SortIndex`, lower first), then by name, in the picker and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. The picker's search lists exact matches first, then names that start with the search, then the rest, each in that order. Every category starts at 0, so without sort indexes the order stays alphabetical. Names are compared in the language the categories are listed in.
+
+To list a level in the same order elsewhere, for example children loaded through `IContentLoader`, use `InCategoryOrder()`:
 
 ```csharp
 using Geta.Optimizely.Categories.Extensions;
 
-var topics = currentPage.Categories.Select(_contentLoader.Get<CategoryData>).InCategoryOrder();
+var topics = _contentLoader.GetChildren<CategoryData>(topicsLink).InCategoryOrder();
 ```
+
+`SortIndex` places a category among its siblings, so for categories from several levels, such as a page's selected categories, `InCategoryOrder()` compares places under different parents.
 
 ### More than one categories root
 
-The package keeps one categories root under each assets root ("For All Sites" / "For This Site"). If an import adds another, the oldest is used. Categories imported into another root, including a root nested under the main one, don't show in the picker until you move them under the root in use. You can do that in Settings → Set Access Rights, or with `IContentRepository.Move`.
+The package keeps one categories root in the global assets folder and one in each site's assets folder. If an import adds another root next to one of them, the oldest is used. The categories under the other root don't show in the picker, its search or category routing until you move them under the root in use. Settings → Set Access Rights lists every root but can't move content, so move them with `IContentRepository.Move`, for example from a small admin tool. A root imported under the root in use needs nothing: the picker lists it as a group that can't be picked, with its categories under it.
 
 	
 There are a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:

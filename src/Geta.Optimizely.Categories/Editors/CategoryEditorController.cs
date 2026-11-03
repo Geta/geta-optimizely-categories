@@ -20,8 +20,8 @@ namespace Geta.Optimizely.Categories.Editors
     /// <summary>
     /// Package-owned endpoints backing the CMS 13 ES6 category picker: the "Create category" action,
     /// the <see cref="Selectable"/> check that decides which listed categories may be picked, and the
-    /// <see cref="Children"/> listing for levels larger than the shell content-structure store returns.
-    /// Otherwise listing the categories (tree, search, resolve) uses the built-in CMS shell stores.
+    /// <see cref="Children"/> listing of every tree level. Search and resolving names use the built-in
+    /// CMS shell stores, and the tree falls back to the content-structure store if Children fails.
     /// </summary>
     [ApiController]
     [Authorize(Policy = Constants.EditorAuthorizationPolicy)]
@@ -124,7 +124,7 @@ namespace Geta.Optimizely.Categories.Editors
             [FromQuery] string language = null)
         {
             var rules = _typesValidator.For(ownerContentTypeId, propertyName);
-            var loaderOptions = LoaderOptionsFor(language);
+            var loaderOptions = LoaderOptionsFor(ParseCulture(language));
 
             // The verdict depends only on the content type, so evaluate each once per request.
             var typeVerdicts = new Dictionary<int, bool>();
@@ -166,10 +166,11 @@ namespace Geta.Optimizely.Categories.Editors
         }
 
         /// <summary>
-        /// Lists a category's children without the shell content-structure store's cap on the number of
-        /// items it returns. The picker only falls back to this when the store's answer looks truncated.
-        /// As in the store, nothing is listed below a parent the current user cannot read, and children
-        /// they cannot read are left out.
+        /// Lists a category's children for the picker's tree: in category order (<see cref="CategoryData.SortIndex"/>,
+        /// then name in the editing language) and without the shell content-structure store's cap on the
+        /// number of items it returns. The picker falls back to that store if this fails. As in the store,
+        /// nothing is listed below a parent the current user cannot read, and children they cannot read are
+        /// left out.
         /// </summary>
         [HttpGet]
         public IActionResult Children([FromQuery] string parentId, [FromQuery] string language = null)
@@ -179,7 +180,9 @@ namespace Geta.Optimizely.Categories.Editors
                 return BadRequest("Invalid parent link.");
             }
 
-            var loaderOptions = LoaderOptionsFor(language);
+            // This endpoint isn't routed content, so CMS doesn't set the current culture to the editing language.
+            var culture = ParseCulture(language);
+            var loaderOptions = LoaderOptionsFor(culture);
             if (!_contentRepository.TryGet<IContent>(parent, loaderOptions, out var parentContent) || !CanRead(parentContent))
             {
                 return Ok(new List<CategoryChildResponse>());
@@ -187,7 +190,7 @@ namespace Geta.Optimizely.Categories.Editors
 
             var children = _contentRepository.GetChildren<CategoryData>(parent, loaderOptions)
                 .Where(CanRead)
-                .InCategoryOrder()
+                .InCategoryOrder(culture)
                 .Select(c => new CategoryChildResponse
                 {
                     // The full reference, as the store sends it: a bare ID would drop a provider name.
@@ -242,9 +245,9 @@ namespace Geta.Optimizely.Categories.Editors
         }
 
         // No (valid) language: FallbackWithMaster(null) uses CMS's preferred culture, as before.
-        private static LoaderOptions LoaderOptionsFor(string language)
+        private static LoaderOptions LoaderOptionsFor(CultureInfo culture)
         {
-            return new LoaderOptions { LanguageLoaderOption.FallbackWithMaster(ParseCulture(language)) };
+            return new LoaderOptions { LanguageLoaderOption.FallbackWithMaster(culture) };
         }
 
         private static string[] SplitList(string value)

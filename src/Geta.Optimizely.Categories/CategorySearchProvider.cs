@@ -14,6 +14,7 @@ using EPiServer.Security;
 using EPiServer.Shell;
 using EPiServer.Shell.Search;
 using EPiServer.Web.Routing;
+using Geta.Optimizely.Categories.Extensions;
 
 namespace Geta.Optimizely.Categories
 {
@@ -104,8 +105,8 @@ namespace Geta.Optimizely.Categories
                 // Like CMS's own search providers, list only what the user may read.
                 .Where(c => _contentAccessEvaluator.HasAccess(c, AccessLevel.Read))
                 .OrderBy(c => MatchRank(c.Name, term))
-                .ThenBy(c => c.SortIndex)
-                .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
+                // Hits of the same rank in category order, names compared in the content language.
+                .ThenBy(c => c, CategoryOrderExtensions.Comparer(LanguageResolver.Language))
                 .Take(maxResults);
         }
 

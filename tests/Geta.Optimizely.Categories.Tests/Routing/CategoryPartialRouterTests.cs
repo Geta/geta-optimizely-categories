@@ -7,6 +7,7 @@ using EPiServer.Core;
 using EPiServer.Core.Routing.Pipeline;
 using EPiServer.Globalization;
 using Geta.Optimizely.Categories.Configuration;
+using Geta.Optimizely.Categories.Extensions;
 using Geta.Optimizely.Categories.Routing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -21,6 +22,7 @@ namespace Geta.Optimizely.Categories.Tests.Routing
         private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en");
 
         private readonly Mock<ICategoryContentLoader> _categories = new();
+        private readonly Mock<IContentLoader> _contentLoader = new();
         private readonly DefaultHttpContext _httpContext = new();
 
         private CategoryPartialRouter CreateRouter(string separator = "__", bool usePath = false)
@@ -28,7 +30,8 @@ namespace Geta.Optimizely.Categories.Tests.Routing
             var accessor = new Mock<IHttpContextAccessor>();
             accessor.SetupGet(a => a.HttpContext).Returns(_httpContext);
             var options = Options.Create(new CategoriesOptions { CategorySeparator = separator, UseUrlPathForCategoryRetrieval = usePath });
-            return new CategoryPartialRouter(Mock.Of<IContentLoader>(), _categories.Object, Mock.Of<LanguageResolver>(), options, accessor.Object);
+            var languages = Mock.Of<LanguageResolver>(l => l.GetPreferredCulture() == English);
+            return new CategoryPartialRouter(_contentLoader.Object, _categories.Object, languages, options, accessor.Object);
         }
 
         private void Categories(params string[] urlSegments)
@@ -163,6 +166,93 @@ namespace Geta.Optimizely.Categories.Tests.Routing
             Assert.Null(routed);
             Assert.Empty(CurrentCategories());
             Assert.Equal("Index/", context.RemainingSegments.ToString());
+        }
+
+        // Every lookup queries the category tree, so a segment is looked up once, not again by the lenient pass.
+        [Fact]
+        public void AnAction_IsLookedUpOnce()
+        {
+            CreateRouter().RoutePartial(Page(), ContextFor("feed/"));
+
+            _categories.Verify(c => c.GetFirstBySegment<CategoryData>("feed", It.IsAny<CultureInfo>()), Times.Once);
+        }
+
+        [Fact]
+        public void LeadingSegments_AreEachLookedUpOnce_WhateverTheirNumber()
+        {
+            Categories("news");
+            var context = ContextFor(string.Concat(Enumerable.Repeat("news/", 20)) + string.Concat(Enumerable.Repeat("x/", 20)));
+
+            CreateRouter(separator: "/").RoutePartial(Page(), context);
+
+            Assert.Equal(new[] { "news" }, CurrentCategories());
+            Assert.Equal(string.Concat(Enumerable.Repeat("x/", 20)), context.RemainingSegments.ToString());
+            _categories.Verify(c => c.GetFirstBySegment<CategoryData>("news", It.IsAny<CultureInfo>()), Times.Once);
+            _categories.Verify(c => c.GetFirstBySegment<CategoryData>("x", It.IsAny<CultureInfo>()), Times.Once);
+        }
+
+        // A long path that isn't a category path costs a bounded number of lookups, not one per prefix.
+        [Fact]
+        public void ALongPath_IsReadUpToALimit()
+        {
+            var routed = CreateRouter(separator: "/", usePath: true).RoutePartial(Page(), ContextFor(string.Concat(Enumerable.Repeat("x/", 500))));
+
+            Assert.Null(routed);
+            _categories.Verify(c => c.GetCategoryByPath<CategoryData>(It.IsAny<string>(), It.IsAny<CultureInfo>()), Times.AtMost(64));
+        }
+
+        // Another URL resolved during the same request, e.g. a link made permanent when content is saved, is
+        // routed too, and the request keeps the categories of its own route.
+        [Fact]
+        public void ALaterResolveInTheSameRequest_IsRoutedToo()
+        {
+            Categories("sports", "news");
+            var router = CreateRouter();
+            router.RoutePartial(Page(), ContextFor("sports/"));
+            var later = ContextFor("news/");
+
+            var routed = router.RoutePartial(Page(), later);
+
+            Assert.NotNull(routed);
+            Assert.True(later.RemainingSegments.IsEmpty);
+            Assert.Equal(new[] { "sports" }, CurrentCategories());
+        }
+
+        // CMS's next pass over what remains (here an action that is also a category's segment) isn't read as categories.
+        [Fact]
+        public void TheNextPassOverTheSameResolve_IsNotRouted()
+        {
+            Categories("sports", "feed");
+            var router = CreateRouter();
+            var context = ContextFor("sports/feed/");
+            router.RoutePartial(Page(), context);
+
+            var routed = router.RoutePartial(Page(), context);
+
+            Assert.Null(routed);
+            Assert.Equal("feed/", context.RemainingSegments.ToString());
+        }
+
+        // The URL helpers write a category the way UseUrlPathForCategoryRetrieval routes it: its path from the
+        // categories root.
+        [Fact]
+        public void UrlPathRetrieval_WritesTheCategoryPath()
+        {
+            var root = new CategoryRoot { ContentLink = new ContentReference(2), ParentLink = new ContentReference(1), RouteSegment = "categories" };
+            var sports = new CategoryData { ContentLink = new ContentReference(3), ParentLink = root.ContentLink, RouteSegment = "sports" };
+            var football = new CategoryData { ContentLink = new ContentReference(4), ParentLink = sports.ContentLink, RouteSegment = "football" };
+            foreach (var category in new[] { root, sports, football })
+            {
+                var loaded = category;
+                _contentLoader.Setup(l => l.TryGet(It.Is<ContentReference>(r => r.ID == loaded.ContentLink.ID), out loaded)).Returns(true);
+            }
+
+            var context = new UrlGeneratorContext(new ContentReference(10));
+            context.RouteValues[CategoryRoutingConstants.CurrentCategories] = new CategoryLinkCollection(new[] { football.ContentLink });
+
+            var path = CreateRouter(usePath: true).GetPartialVirtualPath(Page(), context);
+
+            Assert.Equal("categories/sports/football/", path.PartialVirtualPath);
         }
     }
 }

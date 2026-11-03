@@ -43,7 +43,8 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
         private void GetChildren(CategoryData categoryData, List<SelectListItem> list, string prefix)
         {
             list.Add(new SelectListItem { Text = prefix + categoryData.Name, Value = categoryData.ContentLink.ID.ToString() });
-            foreach (var c in _contentLoader.GetChildren<CategoryData>(categoryData.ContentLink))
+            // Through the category loader, as the top level is: every level in category order.
+            foreach (var c in _categoryContentLoader.GetChildren<CategoryData>(categoryData.ContentLink))
             {
                 GetChildren(c, list, prefix + "-");
             }

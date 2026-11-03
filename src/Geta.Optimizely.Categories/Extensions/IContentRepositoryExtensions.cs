@@ -57,9 +57,8 @@ namespace Geta.Optimizely.Categories.Extensions
         internal static CategoryRoot SelectCategoriesRoot(IEnumerable<CategoryRoot> roots)
         {
             return roots?
-                .Where(root => root?.ContentLink != null)
-                .OrderBy(root => root.ContentLink.ID)
-                .FirstOrDefault();
+                .Where(root => !ContentReference.IsNullOrEmpty(root?.ContentLink))
+                .MinBy(root => root.ContentLink.ID);
         }
     }
 }

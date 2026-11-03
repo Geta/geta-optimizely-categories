@@ -402,6 +402,26 @@ namespace Geta.Optimizely.Categories.Tests.Editors
             Assert.Equal(new[] { "News", "Culture", "Sport", "Archive" }, names);
         }
 
+        // The endpoint isn't routed content, so CMS doesn't set the current culture to the editing language:
+        // names are compared in the language the picker sends, as a site page in that language lists them.
+        [Fact]
+        public void Children_CompareNamesInTheEditingLanguage()
+        {
+            var parent = Category(5, "Parent");
+            IContent parentContent = parent;
+            var repo = new Mock<IContentRepository>();
+            repo.Setup(r => r.TryGet<IContent>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>(), out parentContent)).Returns(true);
+            repo.Setup(r => r.GetChildren<CategoryData>(It.Is<ContentReference>(c => c.ID == 5), It.IsAny<LoaderOptions>()))
+                .Returns(new[] { Category(10, "Öl"), Category(11, "Zon") });
+            var controller = CreateController(repo, access: ReadAccessExcept());
+
+            var swedish = Assert.IsType<List<CategoryChildResponse>>(Assert.IsType<OkObjectResult>(controller.Children("5", "sv")).Value);
+            var english = Assert.IsType<List<CategoryChildResponse>>(Assert.IsType<OkObjectResult>(controller.Children("5", "en")).Value);
+
+            Assert.Equal(new[] { "Zon", "Öl" }, swedish.Select(c => c.Name));
+            Assert.Equal(new[] { "Öl", "Zon" }, english.Select(c => c.Name));
+        }
+
         [Fact]
         public void Children_OfAParentTheUserCannotRead_ListsNothing()
         {

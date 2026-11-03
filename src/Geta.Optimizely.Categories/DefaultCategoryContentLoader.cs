@@ -30,7 +30,7 @@ namespace Geta.Optimizely.Categories
 
         public virtual T Get<T>(ContentReference categoryLink, CultureInfo culture) where T : CategoryData
         {
-            return ContentRepository.Get<T>(categoryLink, culture);
+            return Get<T>(categoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
         }
 
         public virtual T Get<T>(ContentReference categoryLink, LoaderOptions loaderOptions) where T : CategoryData
@@ -45,12 +45,14 @@ namespace Geta.Optimizely.Categories
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, CultureInfo culture) where T : CategoryData
         {
-            return ContentRepository.GetChildren<T>(parentCategoryLink, culture).InCategoryOrder();
+            return GetChildren<T>(parentCategoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
         }
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, LoaderOptions loaderOptions) where T : CategoryData
         {
-            return ContentRepository.GetChildren<T>(parentCategoryLink, loaderOptions).InCategoryOrder();
+            // Names are compared in the language the categories are loaded in.
+            return ContentRepository.GetChildren<T>(parentCategoryLink, loaderOptions)
+                .InCategoryOrder(loaderOptions?.Get<LanguageLoaderOption>()?.Language);
         }
 
         public T GetFirstBySegment<T>(string urlSegment) where T : CategoryData
@@ -190,7 +192,7 @@ namespace Geta.Optimizely.Categories
 
             return categories
                 .FirstOrDefault(
-                    category => CategoryPath(category).Equals(trimmedUrl, StringComparison.InvariantCultureIgnoreCase));
+                    category => CategoryPath(ContentRepository, category).Equals(trimmedUrl, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public virtual IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData
@@ -244,13 +246,15 @@ namespace Geta.Optimizely.Categories
             };
         }
 
-        private string CategoryPath(CategoryData category, string path = "")
+        // The category's URL path from its categories root, including the root's own segment
+        // ("categories/sports/football"): what UseUrlPathForCategoryRetrieval routes by, and the router writes.
+        internal static string CategoryPath(IContentLoader contentLoader, CategoryData category, string path = "")
         {
             path = "/" + category.RouteSegment + path;
 
-            if (ContentRepository.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
+            if (contentLoader.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
             {
-                return CategoryPath(parentCategory, path);
+                return CategoryPath(contentLoader, parentCategory, path);
             }
 
             path = path.TrimEnd('/');

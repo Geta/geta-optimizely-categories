@@ -3,11 +3,12 @@
 
 // Hybrid data client for the category property editor.
 //
-// READ paths hit the CMS 13 built-in shell stores (captured during discovery,
-// see docs/superpowers/research/2026-05-27-cms13-endpoints.md):
+// Search and names use the CMS 13 built-in shell stores (captured during discovery,
+// see docs/superpowers/research/2026-05-27-cms13-endpoints.md), and the tree falls back to the
+// content-structure store when the package's Children endpoint fails:
 //
 //   GET /Optimizely/cms/Stores/contentstructure/?referenceId=<id>&query=getchildren
-//       &typeIdentifiers=<typeId>&allLanguages=true
+//       &typeIdentifiers=<typeId>&allLanguages=true  (tree fallback)
 //   GET /Optimizely/shell/Stores/searchresults/?searchRoots=<rootId>&searchQuery=<q>
 //       &parameters=%7B%22filterOnDeleted%22%3Atrue%7D&filterOnCulture=false
 //   GET /Optimizely/cms/Stores/contentdata/<id>
@@ -16,10 +17,11 @@
 //
 //   POST /geta-optimizely-categories/api/Create
 //   GET  /geta-optimizely-categories/api/Selectable?ids=<ids>&ownerContentTypeId=<id>&propertyName=<name>&language=<lang>
-//   GET  /geta-optimizely-categories/api/Children?parentId=<id>&language=<lang>  (levels past the store's cap)
+//   GET  /geta-optimizely-categories/api/Children?parentId=<id>&language=<lang>  (every tree level)
 //   GET  /geta-optimizely-categories/api/CreatableTypes?parentId=<id>&ownerContentTypeId=<id>&propertyName=<name>
 //
-// The stores decide WHICH categories are listed; the Selectable endpoint decides which may be PICKED.
+// Children (or the content-structure store) and the search store decide WHICH categories are listed;
+// the Selectable endpoint decides which may be PICKED.
 //
 // All read functions return data in the editor's internal node shape:
 //   { id: string, name: string, hasChildren: boolean }
@@ -54,9 +56,10 @@ const READ_SELECTABLE = "/geta-optimizely-categories/api/Selectable";
 const READ_CHILDREN = "/geta-optimizely-categories/api/Children";
 const READ_CREATABLE_TYPES = "/geta-optimizely-categories/api/CreatableTypes";
 
-// Base category type the tree lists. Always the base type, never the property's [AllowedTypes]: the
-// store filters rather than marks, so narrowing it would drop container categories and hide the
-// allowed categories beneath them. The allow-list is enforced per node via getSelectable().
+// Base category type the content-structure store lists (the tree's fallback). Always the base type,
+// never the property's [AllowedTypes]: the store filters rather than marks, so narrowing it would drop
+// container categories and hide the allowed categories beneath them. The allow-list is enforced per
+// node via getSelectable().
 export const CATEGORY_TYPE_IDENTIFIER = "geta.optimizely.categories.categorydata";
 
 async function getJson(url) {
@@ -121,6 +124,7 @@ export function setContentLanguage(language) {
 export async function getChildren(parentId) {
     // The package endpoint lists every child, in category order (SortIndex, then name). CMS's store
     // has neither: it lists categories by name and caps a level (MaxChildrenCountInContentTree).
+    if (PACKAGE_CHILDREN_FAILED) return getStoreChildren(parentId);
     const params = new URLSearchParams({ parentId: String(parentId) });
     if (CONTENT_LANGUAGE) params.set("language", CONTENT_LANGUAGE);
     try {
@@ -128,10 +132,17 @@ export async function getChildren(parentId) {
     } catch (err) {
         // E.g. the endpoint can't authenticate the editor (see EditorAuthenticationSchemes): still
         // show the level, as CMS lists it.
-        console.warn("Geta categories: listing children through the package failed; using CMS's order.", err);
+        if (!PACKAGE_CHILDREN_FAILED) {
+            PACKAGE_CHILDREN_FAILED = true;
+            console.warn("Geta categories: listing children through the package failed; using CMS's order.", err);
+        }
         return getStoreChildren(parentId);
     }
 }
+
+// Set once the Children endpoint has failed: the rest of the page lists through CMS's store, rather than
+// sending a failing request (and logging it) before every level.
+let PACKAGE_CHILDREN_FAILED = false;
 
 async function getStoreChildren(parentId) {
     const params = new URLSearchParams({
