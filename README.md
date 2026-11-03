@@ -239,6 +239,8 @@ public ActionResult Index(ArticleListPage currentPage, IList<CategoryData> curre
 
 You can also have multiple category URL segments separated with the configured category separator: /articles/entertainment__sports/, currentCategories will now contain both "Sports" and "Entertainment". A URL segment after the categories, such as an action (/articles/entertainment__sports/feed/), is left to route as usual.
 
+With `UseUrlPathForCategoryRetrieval`, each category is written as its full path from the categories root, including the root's own URL segment: /articles/categories/sports/football/ (categories separated with the category separator, as above).
+
 ### Sort order
 
 Categories are listed by their **Sort index** (`SortIndex`, lower first), then by name, in the picker and its search results, and by `ICategoryContentLoader.GetChildren`, `GetGlobalCategories` and `GetSiteCategories`. Every category starts at 0, so without sort indexes the order stays alphabetical. To list categories in the same order elsewhere, use `InCategoryOrder()`:
