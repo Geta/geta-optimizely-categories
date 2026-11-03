@@ -1,7 +1,6 @@
 // Copyright (c) Geta Digital. All rights reserved.
 // Licensed under Apache-2.0. See the LICENSE file in the project root for more information
 
-using EPiServer;
 using EPiServer.Core;
 using Geta.Optimizely.Categories.EditorDescriptors;
 using Moq;
@@ -21,9 +20,8 @@ namespace Geta.Optimizely.Categories.Tests.EditorDescriptors
             var categories = new Mock<ICategoryContentLoader>();
             categories.Setup(c => c.GetGlobalCategories<CategoryData>()).Returns(new[] { sport });
             categories.Setup(c => c.GetChildren<CategoryData>(sport.ContentLink)).Returns(new[] { football, archive });
-            var contentLoader = new Mock<IContentLoader>(MockBehavior.Strict);
 
-            var items = new CategoryListing(categories.Object, contentLoader.Object).GetSelectListItems(typeof(IList<ContentReference>));
+            var items = new CategoryListing(categories.Object).GetSelectListItems(typeof(IList<ContentReference>));
 
             Assert.Equal(new[] { "Sport", "-Football", "-Archive" }, items.Select(i => i.Text));
         }

@@ -106,7 +106,7 @@ namespace Geta.Optimizely.Categories
                 .Where(c => _contentAccessEvaluator.HasAccess(c, AccessLevel.Read))
                 .OrderBy(c => MatchRank(c.Name, term))
                 // Hits of the same rank in category order, names compared in the content language.
-                .ThenBy(c => c, CategoryOrderExtensions.Comparer(LanguageResolver.Language))
+                .ThenInCategoryOrder(LanguageResolver.Language)
                 .Take(maxResults);
         }
 

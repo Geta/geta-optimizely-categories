@@ -29,29 +29,56 @@ namespace Geta.Optimizely.Categories.Tests
             Assert.Equal("sv", language.Language.Name);
         }
 
-        // Issue #48: with more than one categories root under a parent (e.g. after an import), always use
-        // the oldest, whatever order CMS lists them in.
+        // Issue #48: roots with the same name (an import's copy) are listed by CMS in no stable order; the oldest wins.
         [Fact]
-        public void SeveralCategoriesRoots_TheOldestIsUsed()
+        public void OfRootsWithTheSameName_TheOldestIsSelected()
         {
-            var roots = new[] { Root(30), Root(12), Root(19) };
+            var roots = new[] { Root(30, "For All Sites"), Root(12, "For All Sites"), Root(19, "for all sites") };
 
-            Assert.Equal(12, ContentRepositoryExtensions.SelectCategoriesRoot(roots)!.ContentLink.ID);
-            Assert.Equal(12, ContentRepositoryExtensions.SelectCategoriesRoot(roots.Reverse())!.ContentLink.ID);
+            Assert.Equal(12, Select(roots)!.ContentLink.ID);
+            Assert.Equal(12, Select(roots.Reverse())!.ContentLink.ID);
+        }
+
+        // An upgrade keeps 2.x's root: the first CMS lists, even when it isn't the oldest.
+        [Fact]
+        public void OfRootsWithDifferentNames_TheFirstListedIsSelected()
+        {
+            var roots = new[] { Root(950, "Categories"), Root(120, "For All Sites") };
+
+            Assert.Equal(950, Select(roots)!.ContentLink.ID);
+        }
+
+        // An imported empty root never hides the root that holds the categories, older or not.
+        [Fact]
+        public void ARootWithCategories_WinsOverAnEmptyOne()
+        {
+            var roots = new[] { Root(12, "For All Sites"), Root(950, "For All Sites"), Root(40, "Archive") };
+
+            Assert.Equal(950, Select(roots, withCategories: 950)!.ContentLink.ID);
+            Assert.Equal(40, Select(roots.Reverse(), withCategories: 40)!.ContentLink.ID);
+        }
+
+        [Fact]
+        public void ASingleRoot_IsSelectedWithoutLookingForCategories()
+        {
+            var selected = ContentRepositoryExtensions.SelectCategoriesRoot(
+                new[] { Root(12, "Categories") }, _ => throw new InvalidOperationException("Not asked for one root."));
+
+            Assert.Equal(12, selected!.ContentLink.ID);
         }
 
         [Fact]
         public void NoCategoriesRoot_NoneIsSelected()
         {
-            Assert.Null(ContentRepositoryExtensions.SelectCategoriesRoot(Array.Empty<CategoryRoot>()));
+            Assert.Null(Select(Array.Empty<CategoryRoot>()));
         }
 
         [Fact]
         public void AnUnsavedCategoriesRoot_IsNotSelected()
         {
-            var unsaved = new CategoryRoot { ContentLink = ContentReference.EmptyReference };
+            var unsaved = new CategoryRoot { Name = "For All Sites", ContentLink = ContentReference.EmptyReference };
 
-            Assert.Equal(12, ContentRepositoryExtensions.SelectCategoriesRoot(new[] { unsaved, Root(12) })!.ContentLink.ID);
+            Assert.Equal(12, Select(new[] { unsaved, Root(12, "For All Sites") })!.ContentLink.ID);
         }
 
         // Issue #20: sites list categories in the same order as the picker.
@@ -109,6 +136,10 @@ namespace Geta.Optimizely.Categories.Tests
 
         private static CategoryData Named(string name, int sortIndex) => new() { Name = name, SortIndex = sortIndex };
 
-        private static CategoryRoot Root(int id) => new() { ContentLink = new ContentReference(id) };
+        private static CategoryRoot Root(int id, string name) => new() { ContentLink = new ContentReference(id), Name = name };
+
+        // Every root is empty unless it is listed in withCategories.
+        private static CategoryRoot Select(IEnumerable<CategoryRoot> roots, params int[] withCategories)
+            => ContentRepositoryExtensions.SelectCategoriesRoot(roots, root => withCategories.Contains(root.ContentLink.ID));
     }
 }

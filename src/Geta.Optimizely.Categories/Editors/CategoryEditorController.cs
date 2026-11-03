@@ -244,7 +244,7 @@ namespace Geta.Optimizely.Categories.Editors
             catch (CultureNotFoundException) { return null; }
         }
 
-        // No (valid) language: FallbackWithMaster(null) uses CMS's preferred culture, as before.
+        // A null culture: FallbackWithMaster(null) uses CMS's preferred culture, as before.
         private static LoaderOptions LoaderOptionsFor(CultureInfo culture)
         {
             return new LoaderOptions { LanguageLoaderOption.FallbackWithMaster(culture) };

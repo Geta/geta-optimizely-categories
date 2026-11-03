@@ -30,7 +30,7 @@ namespace Geta.Optimizely.Categories
 
         public virtual T Get<T>(ContentReference categoryLink, CultureInfo culture) where T : CategoryData
         {
-            return Get<T>(categoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
+            return Get<T>(categoryLink, Specific(culture));
         }
 
         public virtual T Get<T>(ContentReference categoryLink, LoaderOptions loaderOptions) where T : CategoryData
@@ -45,14 +45,15 @@ namespace Geta.Optimizely.Categories
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, CultureInfo culture) where T : CategoryData
         {
-            return GetChildren<T>(parentCategoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
+            return GetChildren<T>(parentCategoryLink, Specific(culture));
         }
 
         public virtual IEnumerable<T> GetChildren<T>(ContentReference parentCategoryLink, LoaderOptions loaderOptions) where T : CategoryData
         {
             // Names are compared in the language the categories are loaded in.
             return ContentRepository.GetChildren<T>(parentCategoryLink, loaderOptions)
-                .InCategoryOrder(loaderOptions?.Get<LanguageLoaderOption>()?.Language);
+                .InCategoryOrder(loaderOptions?.Get<LanguageLoaderOption>()?.Language)
+                .ToList();
         }
 
         public T GetFirstBySegment<T>(string urlSegment) where T : CategoryData
@@ -62,12 +63,7 @@ namespace Geta.Optimizely.Categories
 
         public T GetFirstBySegment<T>(string urlSegment, CultureInfo culture) where T : CategoryData
         {
-            var loaderOptions = new LoaderOptions
-            {
-                LanguageLoaderOption.Specific(culture)
-            };
-
-            return GetFirstBySegment<T>(urlSegment, loaderOptions);
+            return GetFirstBySegment<T>(urlSegment, Specific(culture));
         }
 
         public T GetFirstBySegment<T>(string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
@@ -103,12 +99,7 @@ namespace Geta.Optimizely.Categories
 
         public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, CultureInfo culture) where T : CategoryData
         {
-            var loaderOptions = new LoaderOptions
-            {
-                LanguageLoaderOption.Specific(culture)
-            };
-
-            return GetCategoriesBySegment<T>(urlSegment, loaderOptions);
+            return GetCategoriesBySegment<T>(urlSegment, Specific(culture));
         }
 
         public IEnumerable<T> GetCategoriesBySegment<T>(string urlSegment, LoaderOptions loaderOptions) where T : CategoryData
@@ -154,12 +145,7 @@ namespace Geta.Optimizely.Categories
 
         public T GetCategoryByPath<T>(string path, CultureInfo culture) where T : CategoryData
         {
-            var loaderOptions = new LoaderOptions
-            {
-                LanguageLoaderOption.Specific(culture)
-            };
-
-            return GetCategoryByPath<T>(path, loaderOptions);
+            return GetCategoryByPath<T>(path, Specific(culture));
         }
 
         public virtual T GetCategoryByPath<T>(string path, LoaderOptions loaderOptions) where T : CategoryData
@@ -192,7 +178,7 @@ namespace Geta.Optimizely.Categories
 
             return categories
                 .FirstOrDefault(
-                    category => CategoryPath(ContentRepository, category).Equals(trimmedUrl, StringComparison.InvariantCultureIgnoreCase));
+                    category => ContentRepository.GetCategoryPath(category).Equals(trimmedUrl, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public virtual IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData
@@ -238,28 +224,14 @@ namespace Geta.Optimizely.Categories
             };
         }
 
+        private static LoaderOptions Specific(CultureInfo culture) => new() { LanguageLoaderOption.Specific(culture) };
+
         protected virtual LoaderOptions CreateDefaultListOptions()
         {
             return new LoaderOptions
             {
                 LanguageLoaderOption.Fallback(LanguageResolver.GetPreferredCulture())
             };
-        }
-
-        // The category's URL path from its categories root, including the root's own segment
-        // ("categories/sports/football"): what UseUrlPathForCategoryRetrieval routes by, and the router writes.
-        internal static string CategoryPath(IContentLoader contentLoader, CategoryData category, string path = "")
-        {
-            path = "/" + category.RouteSegment + path;
-
-            if (contentLoader.TryGet<CategoryData>(category.ParentLink, out var parentCategory) && parentCategory != null)
-            {
-                return CategoryPath(contentLoader, parentCategory, path);
-            }
-
-            path = path.TrimEnd('/');
-
-            return path.TrimStart('/');
         }
     }
 }

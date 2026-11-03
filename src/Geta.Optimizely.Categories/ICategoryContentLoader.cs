@@ -14,12 +14,7 @@ namespace Geta.Optimizely.Categories
         T Get<T>(ContentReference categoryLink) where T : CategoryData;
 
         /// <summary>Loads a category in the given language.</summary>
-        /// <remarks>
-        /// The default implementation keeps existing <see cref="ICategoryContentLoader"/> implementations
-        /// compiling. It goes through the <see cref="LoaderOptions"/> overload, whose default loads straight
-        /// from CMS's <see cref="IContentLoader"/>: a custom loader or decorator that should handle these
-        /// calls implements both overloads, as <see cref="DefaultCategoryContentLoader"/> does.
-        /// </remarks>
+        /// <remarks>Defaults to the <see cref="LoaderOptions"/> overload.</remarks>
         T Get<T>(ContentReference categoryLink, CultureInfo culture) where T : CategoryData
             => Get<T>(categoryLink, new LoaderOptions { LanguageLoaderOption.Specific(culture) });
 

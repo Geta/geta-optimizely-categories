@@ -1,6 +1,7 @@
 // Copyright (c) Geta Digital. All rights reserved.
 // Licensed under Apache-2.0. See the LICENSE file in the project root for more information
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EPiServer;
@@ -36,7 +37,9 @@ namespace Geta.Optimizely.Categories.Extensions
                 LanguageLoaderOption.FallbackWithMaster()
             };
 
-            var rootCategory = SelectCategoriesRoot(contentRepository.GetChildren<CategoryRoot>(parentLink, loaderOptions));
+            var rootCategory = SelectCategoriesRoot(
+                contentRepository.GetChildren<CategoryRoot>(parentLink, loaderOptions),
+                root => contentRepository.GetChildren<CategoryData>(root.ContentLink, loaderOptions, 0, 1).Any());
 
             if (rootCategory != null)
             {
@@ -50,14 +53,32 @@ namespace Geta.Optimizely.Categories.Extensions
         }
 
         /// <summary>
-        /// The categories root to use when a parent holds more than one (issue #48, e.g. after an
-        /// import): always the oldest, so every request, the picker and routing agree on the same root.
-        /// CMS's child order is not guaranteed to be stable between such roots.
+        /// The categories root to use when a parent holds more than one (issue #48, e.g. after an import).
+        /// A root with categories wins over an empty one, so an imported empty root never hides the
+        /// categories in use. Among the rest, the first CMS lists (as in 2.x, where CMS's child order
+        /// decided), and of roots with that same name, which CMS lists in no stable order, the oldest.
         /// </summary>
-        internal static CategoryRoot SelectCategoriesRoot(IEnumerable<CategoryRoot> roots)
+        /// <param name="roots">The roots in CMS's child order.</param>
+        /// <param name="hasCategories">Whether a root holds any categories; asked only when there are several roots.</param>
+        internal static CategoryRoot SelectCategoriesRoot(IEnumerable<CategoryRoot> roots, Func<CategoryRoot, bool> hasCategories)
         {
-            return roots?
+            var candidates = (roots ?? Enumerable.Empty<CategoryRoot>())
                 .Where(root => !ContentReference.IsNullOrEmpty(root?.ContentLink))
+                .ToList();
+            if (candidates.Count <= 1)
+            {
+                return candidates.FirstOrDefault();
+            }
+
+            var withCategories = candidates.Where(hasCategories).ToList();
+            if (withCategories.Count > 0)
+            {
+                candidates = withCategories;
+            }
+
+            var first = candidates[0];
+            return candidates
+                .Where(root => string.Equals(root.Name, first.Name, StringComparison.OrdinalIgnoreCase))
                 .MinBy(root => root.ContentLink.ID);
         }
     }

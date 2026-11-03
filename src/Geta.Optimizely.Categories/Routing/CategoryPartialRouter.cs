@@ -57,30 +57,39 @@ namespace Geta.Optimizely.Categories.Routing
                 return null;
             }
 
-            var isCategory = CategoryCheck((content as ILocale)?.Language ?? ContentLanguage.PreferredCulture);
+            var culture = (content as ILocale)?.Language ?? ContentLanguage.PreferredCulture;
+            var texts = pathSegments.Select(s => s.Text).ToList();
 
-            // Issue #54: categories span several URL segments only with "/" as the separator, or as a
-            // category path for UseUrlPathForCategoryRetrieval. Then take the longest run of leading
-            // segments that are all categories, so a segment after them (e.g. an action) is left to route.
-            // With any other separator, categories are listed in one segment ("sports__news"), so only
-            // the first segment is read, as before: "/sports/news/" stays the category "sports".
-            for (var count = pathSegments.Count; count > 0; count--)
+            // Each distinct token is looked up once: every lookup queries the category tree, and the same
+            // leading tokens are tested again for each shorter run.
+            var verdicts = new Dictionary<string, bool>(StringComparer.Ordinal);
+            bool IsKnown(string token) => verdicts.TryGetValue(token, out var known)
+                ? known
+                : verdicts[token] = IsCategory(token, culture);
+
+            if (!SpansSegments)
             {
-                var categories = ResolveAll(pathSegments.Take(count).Select(s => s.Text).ToList(), isCategory);
-                if (categories != null)
+                // Categories are listed in one segment ("sports__news"), so only the first segment is read,
+                // as before: "/sports/news/" stays the category "sports". Unknown tokens are ignored.
+                var categories = Tokens(texts).Where(IsKnown).ToList();
+                return categories.Count > 0
+                    ? Matched(content, segmentContext, categories, pathSegments[0].Remaining)
+                    : null;
+            }
+
+            // Issue #54: with "/" as the separator, or as a category path for UseUrlPathForCategoryRetrieval,
+            // categories span segments. Take the longest run of leading segments that are all categories, so
+            // a segment after them (e.g. an action) is left to route.
+            for (var count = texts.Count; count > 0; count--)
+            {
+                var tokens = Tokens(texts.Take(count)).ToList();
+                if (tokens.Count > 0 && tokens.All(IsKnown))
                 {
-                    return Matched(content, segmentContext, categories, pathSegments[count - 1].Remaining);
+                    return Matched(content, segmentContext, tokens, pathSegments[count - 1].Remaining);
                 }
             }
 
-            // As before: the first segment alone, where unknown tokens between separators are ignored. With
-            // UseUrlPathForCategoryRetrieval and DefaultCategoryContentLoader no single segment is a category
-            // path (a path starts with the categories root's segment), so there every category in the URL
-            // has to exist.
-            var lenient = ResolveAny(pathSegments[0].Text, isCategory);
-            return lenient.Count > 0
-                ? Matched(content, segmentContext, lenient, pathSegments[0].Remaining)
-                : null;
+            return null;
         }
 
         /// <summary>
@@ -113,22 +122,6 @@ namespace Geta.Optimizely.Categories.Routing
             return content;
         }
 
-        // Looks each distinct token up once: every lookup queries the category tree, and RoutePartial tests
-        // the same leading tokens again for each shorter run and in its lenient pass.
-        private Func<string, bool> CategoryCheck(CultureInfo culture)
-        {
-            var verdicts = new Dictionary<string, bool>(StringComparer.Ordinal);
-            return token =>
-            {
-                if (!verdicts.TryGetValue(token, out var isCategory))
-                {
-                    verdicts[token] = isCategory = IsCategory(token, culture);
-                }
-
-                return isCategory;
-            };
-        }
-
         // The segments of the path not yet routed (at most maxSegments), each with the path that remains after it.
         private static List<(string Text, ReadOnlyMemory<char> Remaining)> ReadPathSegments(UrlResolverContext segmentContext, int maxSegments)
         {
@@ -151,34 +144,19 @@ namespace Geta.Optimizely.Categories.Routing
             return segments;
         }
 
-        // The category tokens in these path segments, or null unless there are some and every one is a category.
-        private List<string> ResolveAll(IReadOnlyList<string> pathSegments, Func<string, bool> isCategory)
+        // The category tokens in these path segments: the path split on the separator, so with "/" each
+        // segment is one token. With "/" and path retrieval, the segments form one category path.
+        private IEnumerable<string> Tokens(IEnumerable<string> pathSegments)
         {
-            var tokens = Tokens(pathSegments).ToList();
-            return tokens.Count > 0 && tokens.All(isCategory) ? tokens : null;
-        }
-
-        // The category tokens in a single path segment that are categories.
-        private List<string> ResolveAny(string pathSegment, Func<string, bool> isCategory)
-        {
-            return Tokens(new[] { pathSegment }).Where(isCategory).ToList();
-        }
-
-        private IEnumerable<string> Tokens(IReadOnlyList<string> pathSegments)
-        {
-            if (SlashSeparated)
+            var path = string.Join(_trailingSlash, pathSegments);
+            if (SlashSeparated && Configuration.UseUrlPathForCategoryRetrieval)
             {
-                // Each segment is one category - or, for path retrieval, the segments form one path.
-                return Configuration.UseUrlPathForCategoryRetrieval
-                    ? new[] { string.Join(_trailingSlash, pathSegments) }
-                    : pathSegments;
+                return new[] { path };
             }
 
-            var tokens = Configuration.UseUrlPathForCategoryRetrieval
-                ? string.Join(_trailingSlash, pathSegments).Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries)
-                : pathSegments.SelectMany(segment => segment.Split(new[] { CategorySeparator }, StringSplitOptions.RemoveEmptyEntries));
-
-            return tokens.Select(token => token.Trim('/')).Where(token => token.Length > 0);
+            return path.Split(CategorySeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Select(token => token.Trim('/'))
+                .Where(token => token.Length > 0);
         }
 
         private bool IsCategory(string token, CultureInfo culture)
@@ -221,11 +199,14 @@ namespace Geta.Optimizely.Categories.Routing
 
                     // UseUrlPathForCategoryRetrieval routes a category by its path from the categories root.
                     categorySegments.Add(Configuration.UseUrlPathForCategoryRetrieval
-                        ? DefaultCategoryContentLoader.CategoryPath(ContentLoader, category)
+                        ? ContentLoader.GetCategoryPath(category)
                         : category.RouteSegment);
                 }
 
-                categorySegments.Sort(StringComparer.Create(LanguageResolver.GetPreferredCulture(), true));
+                if (categorySegments.Count > 1)
+                {
+                    categorySegments.Sort(StringComparer.Create(LanguageResolver.GetPreferredCulture(), true));
+                }
 
                 // Remove from query now that it's handled.
                 routeValues.Remove(CategoryRoutingConstants.CurrentCategories);

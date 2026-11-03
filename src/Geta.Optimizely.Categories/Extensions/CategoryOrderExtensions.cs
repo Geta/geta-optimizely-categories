@@ -21,33 +21,22 @@ namespace Geta.Optimizely.Categories.Extensions
         /// loaded in. Without it, the current culture.</param>
         public static IEnumerable<T> InCategoryOrder<T>(this IEnumerable<T> categories, CultureInfo culture = null) where T : CategoryData
         {
-            return (categories ?? Enumerable.Empty<T>()).OrderBy(category => category, Comparer(culture));
+            return (categories ?? Enumerable.Empty<T>())
+                .OrderBy(category => category.SortIndex)
+                .ThenBy(category => category.Name, NameComparer(culture));
         }
 
-        /// <summary>The category order (SortIndex, then name in <paramref name="culture"/>) as a comparer.</summary>
-        internal static IComparer<CategoryData> Comparer(CultureInfo culture)
+        /// <summary>Then in category order, for a list already ordered by something else (e.g. search rank).</summary>
+        internal static IOrderedEnumerable<T> ThenInCategoryOrder<T>(this IOrderedEnumerable<T> categories, CultureInfo culture) where T : CategoryData
         {
-            return new CategoryOrderComparer(culture ?? CultureInfo.CurrentCulture);
+            return categories
+                .ThenBy(category => category.SortIndex)
+                .ThenBy(category => category.Name, NameComparer(culture));
         }
 
-        private sealed class CategoryOrderComparer : IComparer<CategoryData>
+        private static StringComparer NameComparer(CultureInfo culture)
         {
-            private readonly StringComparer _names;
-
-            public CategoryOrderComparer(CultureInfo culture)
-            {
-                _names = StringComparer.Create(culture, ignoreCase: true);
-            }
-
-            public int Compare(CategoryData x, CategoryData y)
-            {
-                if (ReferenceEquals(x, y)) return 0;
-                if (x == null) return -1;
-                if (y == null) return 1;
-
-                var bySortIndex = x.SortIndex.CompareTo(y.SortIndex);
-                return bySortIndex != 0 ? bySortIndex : _names.Compare(x.Name, y.Name);
-            }
+            return StringComparer.Create(culture ?? CultureInfo.CurrentCulture, ignoreCase: true);
         }
     }
 }
