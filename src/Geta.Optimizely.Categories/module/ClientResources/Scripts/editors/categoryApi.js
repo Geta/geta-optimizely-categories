@@ -191,9 +191,10 @@ export async function search(query, opts) {
     const items = pickArray(raw);
     const hits = mapSearchResults(items);
     // When the provider throws, the store answers 200 with one id-less result carrying the error
-    // message as its title. Report it as a failure instead of offering it as a pickable row.
+    // message as its title. Report it as a failure instead of offering it as a pickable row (an empty
+    // message leaves the picker's translated "unknown error").
     if (hits.length === 0 && items.length > 0) {
-        throw new Error(decodeHtml(items[0] && items[0].title) || "search provider error");
+        throw new Error(decodeHtml(items[0] && items[0].title));
     }
     return hits;
 }
@@ -344,12 +345,6 @@ async function fetchSelectable(ids, typeQuery) {
 export function isSelectable(map, id) {
     const verdict = map && map[String(id)];
     return !verdict || verdict.selectable !== false;
-}
-
-// Human-readable tooltip for a disabled row, keyed off the endpoint's reason code.
-export function selectabilityMessage(reason) {
-    if (reason === "typeNotAllowed") return "This category type cannot be selected for this property";
-    return "This category is not selectable";
 }
 
 // ----------------------------------------------------------------------------

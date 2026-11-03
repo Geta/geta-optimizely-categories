@@ -18,9 +18,10 @@ import * as api from "./categoryApi.js";
  * @param {Set<string>} selected        Initial selection (will be reflected in checkboxes).
  * @param {(id:string, checked:boolean) => void} onToggle
  * @param {Set<string>} [preselected]   Ids selected when the dialog opened; disabling never unticks these.
+ * @param {object} labels               The editor's texts (labels.js createLabels).
  * @returns {{ setSelected: (ids: Iterable<string>) => void, destroy: () => void }}
  */
-export function renderTree(host, roots, opts, selected, onToggle, preselected = selected) {
+export function renderTree(host, roots, opts, selected, onToggle, preselected = selected, labels) {
     host.innerHTML = "";
     host.classList.add("geta-cat-tree");
 
@@ -76,20 +77,20 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
 
             if (expanded && !loaded && !loading) {
                 loading = true;
-                renderLoading(childHost, depth);
+                renderStatus(childHost, depth, "loading", labels.label("loading"));
                 try {
                     const kids = await api.getChildren(node.id);
                     if (destroyed) return;
                     childHost.innerHTML = "";
                     if (!kids || kids.length === 0) {
-                        renderEmpty(childHost, depth);
+                        renderStatus(childHost, depth, "empty", labels.label("noCategories"));
                     } else {
                         kids.forEach(k => childHost.appendChild(makeNode(k, depth + 1)));
                         applyLevelSelectability(kids);
                     }
                     loaded = true;
                 } catch (err) {
-                    if (!destroyed) renderError(childHost, depth, err);
+                    if (!destroyed) renderStatus(childHost, depth, "error", labels.errorText("loadFailed", err));
                 } finally {
                     loading = false;
                 }
@@ -103,6 +104,7 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
         applySelectability((nodes || []).map(n => n.id), {
             opts,
             verdicts,
+            labels,
             checkboxFor: id => checkboxes.get(id),
             preselected,
             onUncheck: id => { if (typeof onToggle === "function") onToggle(id, false); },
@@ -111,7 +113,7 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
     }
 
     (async () => {
-        renderLoading(host, 0);
+        renderStatus(host, 0, "loading", labels.label("loading"));
         try {
             const lists = await Promise.all((roots || []).map(rootId => api.getChildren(rootId)));
             if (destroyed) return;
@@ -127,7 +129,7 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
             }
             host.innerHTML = "";
             if (flat.length === 0) {
-                renderEmpty(host, 0);
+                renderStatus(host, 0, "empty", labels.label("noCategories"));
                 return;
             }
             flat.forEach(n => host.appendChild(makeNode(n, 0)));
@@ -135,7 +137,7 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
         } catch (err) {
             if (!destroyed) {
                 host.innerHTML = "";
-                renderError(host, 0, err);
+                renderStatus(host, 0, "error", labels.errorText("loadFailed", err));
             }
         }
     })();
@@ -162,12 +164,13 @@ export function renderTree(host, roots, opts, selected, onToggle, preselected = 
  * @param {object} options
  * @param {object} [options.opts]       Type options forwarded to api.getSelectable.
  * @param {object} [options.verdicts]   A getSelectable() map already fetched for these ids.
+ * @param {object} options.labels      The editor's texts, for the disabled rows' tooltips.
  * @param {(id: string) => (HTMLInputElement|undefined)} options.checkboxFor
  * @param {Set<string>} options.preselected  Ids selected when the dialog opened; these are never unticked.
  * @param {(id: string) => void} options.onUncheck  Called for each box unticked here.
  * @param {() => boolean} options.isStale  True once the rows have been replaced or destroyed.
  */
-export async function applySelectability(ids, { opts, verdicts, checkboxFor, preselected, onUncheck, isStale }) {
+export async function applySelectability(ids, { opts, verdicts, labels, checkboxFor, preselected, onUncheck, isStale }) {
     if (!ids || ids.length === 0) return;
     const map = verdicts || await api.getSelectable(ids, opts);
     if (isStale()) return;
@@ -177,7 +180,7 @@ export async function applySelectability(ids, { opts, verdicts, checkboxFor, pre
         const cb = checkboxFor(id);
         if (!cb) return;
         cb.disabled = true;
-        cb.title = api.selectabilityMessage(map[id].reason);
+        cb.title = selectabilityMessage(labels, map[id].reason);
         cb.closest?.(".geta-cat-tree__row")?.classList.add("geta-cat-tree__row--unselectable");
         if (cb.checked && !preselected.has(id)) {
             cb.checked = false;
@@ -186,26 +189,16 @@ export async function applySelectability(ids, { opts, verdicts, checkboxFor, pre
     });
 }
 
-function renderLoading(host, depth) {
-    const el = document.createElement("div");
-    el.className = "geta-cat-tree__loading";
-    el.style.paddingLeft = (depth * 16 + 16) + "px";
-    el.textContent = "Loading…";
-    host.appendChild(el);
+// Tooltip for a disabled row, keyed off the Selectable endpoint's reason code.
+function selectabilityMessage(labels, reason) {
+    return labels.label(reason === "typeNotAllowed" ? "typeNotAllowed" : "notSelectable");
 }
 
-function renderEmpty(host, depth) {
+// A status row (loading / empty / error) indented to the level it stands in for.
+function renderStatus(host, depth, kind, text) {
     const el = document.createElement("div");
-    el.className = "geta-cat-tree__empty";
+    el.className = "geta-cat-tree__" + kind;
     el.style.paddingLeft = (depth * 16 + 16) + "px";
-    el.textContent = "No categories";
-    host.appendChild(el);
-}
-
-function renderError(host, depth, err) {
-    const el = document.createElement("div");
-    el.className = "geta-cat-tree__error";
-    el.style.paddingLeft = (depth * 16 + 16) + "px";
-    el.textContent = "Failed to load: " + (err && err.message ? err.message : "unknown error");
+    el.textContent = text;
     host.appendChild(el);
 }

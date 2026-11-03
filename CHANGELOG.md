@@ -6,7 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- In the CMS 13.3 side-by-side edit view, the category picker no longer reverts to the published selection after the first change to a published page, and the next change no longer builds on the reverted selection ([#62](https://github.com/Geta/geta-optimizely-categories/issues/62)).
 - The package's translations (`lang/geta.epicategories.xml`) are now embedded in the assembly, so category labels are translated again ([#43](https://github.com/Geta/geta-optimizely-categories/issues/43), [#44](https://github.com/Geta/geta-optimizely-categories/pull/44)).
+- The category picker is shown in the editor's UI language (English, Swedish, Norwegian and Finnish are included); since 2.0.0 it was English only. Texts set per property in the editor settings (`selectLabel`, `popupTitle` and so on) still take precedence.
 - The category picker now enforces `[AllowedTypes]` ([#58](https://github.com/Geta/geta-optimizely-categories/issues/58), [#59](https://github.com/Geta/geta-optimizely-categories/pull/59)). The 2.1.0 fix for [#56](https://github.com/Geta/geta-optimizely-categories/issues/56) point 7 never took effect on the `[Categories]` path, and on the `UIHint` path it emptied the tree when allowed categories sat under a category of another type. Categories of a disallowed type are now shown disabled, so nested allowed categories stay reachable.
 - The picker applies the property's allowed types (the code `[AllowedTypes]` and any allowed types set in admin mode) by the same rules as publishing, so it no longer offers a category that then fails when the page is published.
 - Search in the picker works again. CMS 13 has no search provider for categories, so the package now includes one (`CategorySearchProvider`), which needs neither Find nor Optimizely Graph. Categories can also be found in the edit-mode search.

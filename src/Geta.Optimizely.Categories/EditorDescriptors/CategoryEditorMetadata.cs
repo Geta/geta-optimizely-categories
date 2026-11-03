@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EPiServer.Core;
 using EPiServer.DataAnnotations;
+using EPiServer.Framework.Localization;
 using EPiServer.ServiceLocation;
 using EPiServer.Shell;
 using EPiServer.Shell.ObjectEditing;
@@ -67,9 +68,39 @@ namespace Geta.Optimizely.Categories.EditorDescriptors
             // reaches it is listed through the package's Children endpoint instead.
             metadata.EditorConfiguration["maxChildrenCountInContentTree"] = ResolveMaxChildrenCountInContentTree();
 
+            // The picker's UI texts in the editor's UI language; the client falls back to English
+            // for any key missing here.
+            metadata.EditorConfiguration["labels"] = ResolveLabels(LocalizationService.Current);
+
             // CMS 13: opt into the native ES6 module editor pipeline. Without this flag,
             // CMS would treat ClientEditingClass as a legacy Dojo module id.
             metadata.EditorConfiguration["isJavascriptModule"] = true;
+        }
+
+        /// <summary>
+        /// The picker's label keys, as the client (labels.js) names them. Each is translated in the
+        /// lang file under <c>/getacategories/editor/{key in lower case}</c>.
+        /// </summary>
+        internal static readonly string[] LabelKeys =
+        {
+            "selectButton", "empty", "remove", "popupTitle", "ok", "cancel", "searchPlaceholder",
+            "createButton", "createPrompt", "createSave", "createNameRequired", "createNoTypes", "createFailed",
+            "searching", "noMatches", "searchFailed", "loading", "noCategories", "loadFailed",
+            "typeNotAllowed", "notSelectable", "unknownError"
+        };
+
+        internal static IDictionary<string, string> ResolveLabels(LocalizationService localizationService)
+        {
+            var labels = new Dictionary<string, string>();
+            foreach (var key in LabelKeys)
+            {
+                if (localizationService.TryGetString("/getacategories/editor/" + key.ToLowerInvariant(), out var text))
+                {
+                    labels[key] = text;
+                }
+            }
+
+            return labels;
         }
 
         /// <summary>

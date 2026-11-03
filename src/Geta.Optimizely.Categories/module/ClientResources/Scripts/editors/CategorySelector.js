@@ -16,6 +16,7 @@ import { createDialog } from "./categoryDialog.js";
 import { renderTree, applySelectability } from "./categoryTree.js";
 import { injectCategoryEditorStyles } from "./styles.js";
 import * as api from "./categoryApi.js";
+import { createLabels } from "./labels.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -30,7 +31,10 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     api.setContentLanguage(cfg.contentLanguage);
     api.setStoreChildrenCap(cfg.maxChildrenCountInContentTree);
 
-    const labels = readLabels(cfg);
+    // This editor's texts: the server's translations (EditorConfiguration["labels"]) under any
+    // per-property texts in the editor settings, which 2.0 and 2.1 read and which still win.
+    const labels = createLabels({ ...cfg.labels, ...legacyLabelOverrides(cfg) });
+    const { label, errorText } = labels;
     const roots = extractRoots(cfg);
     // Issue #56 point 7: the property being edited. The server applies its allowed types (code
     // [AllowedTypes] plus admin-mode settings) by the same rules as publishing.
@@ -41,6 +45,12 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     };
 
     let ids = toIds(initialValue);
+    // The selection from just before the last local commit (issue #62). CMS 13.3's side-by-side view
+    // re-initializes its form when the first edit of a published page creates a draft, and hands
+    // updateValue the draft's value from before the edit. Taking it would undo the commit on screen and
+    // make the next edit build on the stale selection, and CMS's form would keep the stale value, so an
+    // edit back to it would look unchanged to CMS and never be saved.
+    let preCommitIds = null;
     const names = new Map();
     let destroyed = false;
     let dialog = null;       // created lazily on first open
@@ -58,14 +68,14 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     const button = document.createElement("button");
     button.type = "button";
     button.className = "geta-categories__open";
-    button.textContent = labels.selectButton;
+    button.textContent = label("selectButton");
     if (readOnly) button.style.display = "none";
     button.addEventListener("click", openDialog);
     container.appendChild(button);
 
     function paint() {
         if (destroyed) return;
-        renderChips(chipsHost, ids, names, readOnly, removeId, labels.empty);
+        renderChips(chipsHost, ids, names, readOnly, removeId, labels);
     }
 
     function removeId(id) {
@@ -75,9 +85,14 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
 
     function commit(newIds) {
         if (sameIds(ids, newIds)) return;
+        preCommitIds = ids;
         ids = newIds;
-        try { onEditorValueChange(fromIds(ids)); } catch (_) { /* may have no handler in tests */ }
+        emitValue();
         paint();
+    }
+
+    function emitValue() {
+        try { onEditorValueChange(fromIds(ids)); } catch (_) { /* may have no handler in tests */ }
     }
 
     async function resolveNames(targetIds) {
@@ -106,16 +121,16 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     }
 
     function buildDialog() {
-        dialog = createDialog(labels.popupTitle, {
-            ok: labels.ok,
-            cancel: labels.cancel
+        dialog = createDialog(label("popupTitle"), {
+            ok: label("ok"),
+            cancel: label("cancel")
         });
 
         if (cfg.showSearchBox !== false) {
             const search = document.createElement("input");
             search.type = "search";
             search.className = "geta-categories-dialog__search";
-            search.placeholder = labels.searchPlaceholder;
+            search.placeholder = label("searchPlaceholder");
             search.addEventListener("input", () => onSearchInput(search.value));
             dialog.body.appendChild(search);
             dialog._searchInput = search;
@@ -132,7 +147,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             const createBtn = document.createElement("button");
             createBtn.type = "button";
             createBtn.className = "geta-categories-dialog__create";
-            createBtn.textContent = labels.createButton;
+            createBtn.textContent = label("createButton");
             createBtn.addEventListener("click", onCreateCategoryClick);
             dialog.footerExtra.appendChild(createBtn);
             dialog._createBtn = createBtn;
@@ -171,7 +186,8 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             typeOpts,
             new Set(working),
             onWorkingToggle,
-            initialIds
+            initialIds,
+            labels
         );
     }
 
@@ -200,9 +216,9 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         const form = document.createElement("div");
         form.className = "geta-categories-dialog__create-form";
 
-        const label = document.createElement("label");
-        label.textContent = labels.createPrompt;
-        form.appendChild(label);
+        const promptLabel = document.createElement("label");
+        promptLabel.textContent = label("createPrompt");
+        form.appendChild(promptLabel);
 
         const input = document.createElement("input");
         input.type = "text";
@@ -221,12 +237,12 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         const cancel = document.createElement("button");
         cancel.type = "button";
         cancel.className = "geta-categories-dialog__create-form-cancel";
-        cancel.textContent = labels.cancel;
+        cancel.textContent = label("cancel");
 
         const save = document.createElement("button");
         save.type = "button";
         save.className = "geta-categories-dialog__create-form-save";
-        save.textContent = labels.createSave;
+        save.textContent = label("createSave");
 
         buttons.append(cancel, save);
         form.appendChild(buttons);
@@ -255,7 +271,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         save.addEventListener("click", async () => {
             const name = (input.value || "").trim();
             if (!name) {
-                showError(errorEl, labels.createNameRequired);
+                showError(errorEl, label("createNameRequired"));
                 input.focus();
                 return;
             }
@@ -270,7 +286,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
                 if (contentTypeId == null) {
                     contentTypeId = await resolveCreatableTypeId(parentId);
                     if (contentTypeId == null) {
-                        showError(errorEl, labels.createNoTypes);
+                        showError(errorEl, label("createNoTypes"));
                         return;
                     }
                 }
@@ -293,7 +309,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
                 renderTreeIntoDialog();
                 closeForm();
             } catch (err) {
-                showError(errorEl, labels.createFailed + (err && err.message ? " — " + err.message : ""));
+                showError(errorEl, label("createFailed") + (err && err.message ? " — " + err.message : ""));
             } finally {
                 if (!destroyed) {
                     save.disabled = false;
@@ -339,7 +355,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         host.innerHTML = "";
         const loading = document.createElement("div");
         loading.className = "geta-cat-tree__loading";
-        loading.textContent = "Searching…";
+        loading.textContent = label("searching");
         host.appendChild(loading);
 
         const isStale = () => destroyed || seq !== renderSeq;
@@ -351,7 +367,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
             host.innerHTML = "";
             const e = document.createElement("div");
             e.className = "geta-cat-tree__error";
-            e.textContent = "Search failed: " + (err && err.message ? err.message : "unknown error");
+            e.textContent = errorText("searchFailed", err);
             host.appendChild(e);
             return;
         }
@@ -361,7 +377,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         if (!results || results.length === 0) {
             const empty = document.createElement("div");
             empty.className = "geta-cat-tree__empty";
-            empty.textContent = "No matches";
+            empty.textContent = label("noMatches");
             host.appendChild(empty);
             return;
         }
@@ -374,6 +390,7 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         // Gate search hits the same way as the tree; the search store ignores type identifiers.
         applySelectability(results.map(r => String(r.id)), {
             opts: typeOpts,
+            labels,
             checkboxFor: id => rowCheckboxes.get(id),
             preselected: initialIds,
             onUncheck: id => onWorkingToggle(id, false),
@@ -391,11 +408,11 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
         cb.checked = working.includes(r.id);
         cb.addEventListener("change", () => onWorkingToggle(r.id, cb.checked));
 
-        const label = document.createElement("span");
-        label.className = "geta-cat-tree__label";
-        label.textContent = r.name || ("#" + r.id);
+        const nameEl = document.createElement("span");
+        nameEl.className = "geta-cat-tree__label";
+        nameEl.textContent = r.name || ("#" + r.id);
 
-        row.append(cb, label);
+        row.append(cb, nameEl);
         return { row, cb };
     }
 
@@ -407,6 +424,14 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
     return {
         updateValue: function (value) {
             const next = toIds(value);
+            // A stale echo of the selection before our last commit: keep ours and hand it back so CMS's
+            // form catches up. Both CMS hosts ignore onChange until a timeout queued after updateValue
+            // returns, so send it from a timeout queued after that one.
+            if (preCommitIds && sameIds(preCommitIds, next)) {
+                setTimeout(() => setTimeout(() => { if (!destroyed) emitValue(); }, 0), 0);
+                return;
+            }
+            preCommitIds = null;
             if (sameIds(ids, next)) return;
             ids = next;
             paint();
@@ -425,21 +450,29 @@ export default function (container, initialValue, onEditorValueChange, widgetSet
 
 // --- helpers ------------------------------------------------------------------
 
-function readLabels(cfg) {
-    return {
-        selectButton: cfg.selectLabel || "Select categories",
-        empty: cfg.emptyText || "No categories selected",
-        popupTitle: cfg.popupTitle || "Select Categories",
-        ok: cfg.okLabel || "OK",
-        cancel: cfg.cancelLabel || "Cancel",
-        searchPlaceholder: cfg.searchPlaceholder || "Search",
-        createButton: cfg.createLabel || "Create category",
-        createPrompt: cfg.createPromptLabel || "Name of the new category",
-        createSave: cfg.createSaveLabel || "Create",
-        createNameRequired: cfg.createNameRequiredMessage || "Please enter a name.",
-        createNoTypes: cfg.createNoTypesMessage || "No creatable category type is available under the selected root.",
-        createFailed: cfg.createFailedMessage || "Could not create the category."
-    };
+// The per-property text settings 2.0 and 2.1 read (e.g. set through [ClientEditor(EditorConfiguration = ...)]),
+// by the label each one sets.
+const LEGACY_LABEL_SETTINGS = {
+    selectButton: "selectLabel",
+    empty: "emptyText",
+    popupTitle: "popupTitle",
+    ok: "okLabel",
+    cancel: "cancelLabel",
+    searchPlaceholder: "searchPlaceholder",
+    createButton: "createLabel",
+    createPrompt: "createPromptLabel",
+    createSave: "createSaveLabel",
+    createNameRequired: "createNameRequiredMessage",
+    createNoTypes: "createNoTypesMessage",
+    createFailed: "createFailedMessage"
+};
+
+function legacyLabelOverrides(cfg) {
+    const overrides = {};
+    for (const [key, setting] of Object.entries(LEGACY_LABEL_SETTINGS)) {
+        if (cfg[setting]) overrides[key] = cfg[setting];
+    }
+    return overrides;
 }
 
 function extractRoots(cfg) {
