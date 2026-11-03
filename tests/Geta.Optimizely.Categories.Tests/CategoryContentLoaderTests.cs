@@ -58,6 +58,17 @@ namespace Geta.Optimizely.Categories.Tests
             Assert.Equal(40, Select(roots.Reverse(), withCategories: 40)!.ContentLink.ID);
         }
 
+        // Issue #48: the other roots are kept, after the one in use, so their categories can still be listed and routed.
+        [Fact]
+        public void EveryRoot_IsKept_TheOneInUseFirst()
+        {
+            var roots = new[] { Root(12, "For All Sites"), Root(950, "For All Sites"), Root(40, "Archive") };
+
+            var ordered = ContentRepositoryExtensions.OrderCategoriesRoots(roots, root => root.ContentLink.ID == 950);
+
+            Assert.Equal(new[] { 950, 12, 40 }, ordered.Select(root => root.ContentLink.ID));
+        }
+
         [Fact]
         public void ASingleRoot_IsSelectedWithoutLookingForCategories()
         {

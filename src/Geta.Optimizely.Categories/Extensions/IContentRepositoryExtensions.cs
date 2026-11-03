@@ -14,42 +14,78 @@ namespace Geta.Optimizely.Categories.Extensions
 {
     public static class ContentRepositoryExtensions
     {
+        /// <summary>The categories root in use in the global assets folder; created if there is none.</summary>
         public static ContentReference GetOrCreateGlobalCategoriesRoot(this IContentRepository contentRepository)
+        {
+            return contentRepository.GetOrCreateGlobalCategoriesRoots()[0];
+        }
+
+        /// <summary>The categories root in use in the site's assets folder; created if there is none.</summary>
+        public static ContentReference GetOrCreateSiteCategoriesRoot(this IContentRepository contentRepository)
+        {
+            return contentRepository.GetOrCreateSiteCategoriesRoots()[0];
+        }
+
+        /// <summary>
+        /// Every categories root in the global assets folder: the one in use first (see
+        /// <see cref="GetOrCreateGlobalCategoriesRoot"/>), then any others, for example one an import added
+        /// (issue #48), so the categories under them can still be listed, picked and routed.
+        /// </summary>
+        public static IReadOnlyList<ContentReference> GetOrCreateGlobalCategoriesRoots(this IContentRepository contentRepository)
         {
             var siteAssetsExists = SiteDefinition.Current.GlobalAssetsRoot != SiteDefinition.Current.SiteAssetsRoot;
             var name = siteAssetsExists ? "For All Sites" : "Categories";
             var routeSegment = siteAssetsExists ? "global-categories" : "categories";
-            return contentRepository.GetOrCreateCategoriesRoot(SiteDefinition.Current.GlobalAssetsRoot, name, routeSegment);
+            return contentRepository.GetOrCreateCategoriesRoots(SiteDefinition.Current.GlobalAssetsRoot, name, routeSegment);
         }
 
-        public static ContentReference GetOrCreateSiteCategoriesRoot(this IContentRepository contentRepository)
+        /// <summary>
+        /// Every categories root in the site's assets folder: the one in use first (see
+        /// <see cref="GetOrCreateSiteCategoriesRoot"/>), then any others, as for <see cref="GetOrCreateGlobalCategoriesRoots"/>.
+        /// </summary>
+        public static IReadOnlyList<ContentReference> GetOrCreateSiteCategoriesRoots(this IContentRepository contentRepository)
         {
             var siteAssetsExists = SiteDefinition.Current.GlobalAssetsRoot != SiteDefinition.Current.SiteAssetsRoot;
             var name = siteAssetsExists ? "For This Site" : "Categories";
             var routeSegment = "categories";
-            return contentRepository.GetOrCreateCategoriesRoot(SiteDefinition.Current.SiteAssetsRoot, name, routeSegment);
+            return contentRepository.GetOrCreateCategoriesRoots(SiteDefinition.Current.SiteAssetsRoot, name, routeSegment);
         }
 
-        private static ContentReference GetOrCreateCategoriesRoot(this IContentRepository contentRepository, ContentReference parentLink, string name, string routeSegment)
+        private static IReadOnlyList<ContentReference> GetOrCreateCategoriesRoots(this IContentRepository contentRepository, ContentReference parentLink, string name, string routeSegment)
         {
             var loaderOptions = new LoaderOptions
             {
                 LanguageLoaderOption.FallbackWithMaster()
             };
 
-            var rootCategory = SelectCategoriesRoot(
+            var roots = OrderCategoriesRoots(
                 contentRepository.GetChildren<CategoryRoot>(parentLink, loaderOptions),
                 root => contentRepository.GetChildren<CategoryData>(root.ContentLink, loaderOptions, 0, 1).Any());
 
-            if (rootCategory != null)
+            if (roots.Count > 0)
             {
-                return rootCategory.ContentLink;
+                return roots.Select(root => root.ContentLink).ToList();
             }
 
-            rootCategory = contentRepository.GetDefault<CategoryRoot>(parentLink);
+            var rootCategory = contentRepository.GetDefault<CategoryRoot>(parentLink);
             rootCategory.Name = name;
             rootCategory.RouteSegment = routeSegment;
-            return contentRepository.Save(rootCategory, SaveAction.Publish, AccessLevel.NoAccess);
+            return new[] { contentRepository.Save(rootCategory, SaveAction.Publish, AccessLevel.NoAccess) };
+        }
+
+        /// <summary>
+        /// The roots in the order they're used: the one <see cref="SelectCategoriesRoot"/> picks, then the
+        /// rest in CMS's order.
+        /// </summary>
+        internal static IReadOnlyList<CategoryRoot> OrderCategoriesRoots(IEnumerable<CategoryRoot> roots, Func<CategoryRoot, bool> hasCategories)
+        {
+            var saved = (roots ?? Enumerable.Empty<CategoryRoot>())
+                .Where(root => !ContentReference.IsNullOrEmpty(root?.ContentLink))
+                .ToList();
+            var inUse = SelectCategoriesRoot(saved, hasCategories);
+            return inUse == null
+                ? saved
+                : saved.Where(root => !ReferenceEquals(root, inUse)).Prepend(inUse).ToList();
         }
 
         /// <summary>

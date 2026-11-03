@@ -259,7 +259,7 @@ var topics = _contentLoader.GetChildren<CategoryData>(topicsLink).InCategoryOrde
 
 ### More than one categories root
 
-The package keeps one categories root in the global assets folder and one in each site's assets folder. If an import adds another root next to one of them, a root that holds categories wins over an empty one. Otherwise the first root CMS lists is used (the one whose name sorts first), and of roots with the same name, the oldest. The categories under the other root don't show in the picker, its search or category routing until you move them under the root in use. Settings → Set Access Rights lists every root but can't move content, so move them with `IContentRepository.Move`, for example from a small admin tool. A root imported under the root in use needs nothing: the picker lists it as a group that can't be picked, with its categories under it.
+The package keeps one categories root in the global assets folder and one in each site's assets folder. If an import adds another root next to one of them, the categories under every root are still used: the picker lists them (the root in use's first), its search finds them, category routing resolves them, and `GetGlobalCategories`/`GetSiteCategories` return them. New categories are created under the root in use. That's the root that holds categories rather than an empty one; otherwise the first root CMS lists (the one whose name sorts first), and of roots with the same name, the oldest. Moving them under the root in use is optional. A root imported under the root in use is listed in the picker as a group that can't be picked, with its categories under it.
 
 	
 There are a couple of UrlHelper and UrlResolver extension methods included to get content URL with category segment added:

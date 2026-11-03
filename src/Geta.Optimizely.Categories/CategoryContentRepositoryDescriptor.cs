@@ -53,14 +53,13 @@ namespace Geta.Optimizely.Categories
         {
             get
             {
-                var list = new List<ContentReference>
-                {
-                    new ContentReference(CategorySettings.GlobalCategoriesRoot)
-                };
+                // Every root, the ones in use first: categories under another root (e.g. one an import added,
+                // issue #48) are listed in the picker and found by its search.
+                var list = new List<ContentReference>(CategorySettings.GlobalCategoriesRoots);
 
                 if (SiteDefinition.Current.GlobalAssetsRoot != SiteDefinition.Current.SiteAssetsRoot)
                 {
-                    list.Add(new ContentReference(CategorySettings.SiteCategoriesRoot));
+                    list.AddRange(CategorySettings.SiteCategoriesRoots);
                 }
 
                 return list;
