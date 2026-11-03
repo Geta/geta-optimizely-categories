@@ -149,32 +149,32 @@ namespace Geta.Optimizely.Categories
 
         public virtual IEnumerable<T> GetGlobalCategories<T>() where T : CategoryData
         {
-            return ContentRepository.GetOrCreateGlobalCategoriesRoots().SelectMany(root => GetChildren<T>(root)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot());
         }
 
         public virtual IEnumerable<T> GetGlobalCategories<T>(CultureInfo culture) where T : CategoryData
         {
-            return ContentRepository.GetOrCreateGlobalCategoriesRoots().SelectMany(root => GetChildren<T>(root, culture)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), culture);
         }
 
         public virtual IEnumerable<T> GetGlobalCategories<T>(LoaderOptions loaderOptions) where T : CategoryData
         {
-            return ContentRepository.GetOrCreateGlobalCategoriesRoots().SelectMany(root => GetChildren<T>(root, loaderOptions)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateGlobalCategoriesRoot(), loaderOptions);
         }
 
         public virtual IEnumerable<T> GetSiteCategories<T>() where T : CategoryData
         {
-            return ContentRepository.GetOrCreateSiteCategoriesRoots().SelectMany(root => GetChildren<T>(root)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateSiteCategoriesRoot());
         }
 
         public virtual IEnumerable<T> GetSiteCategories<T>(CultureInfo culture) where T : CategoryData
         {
-            return ContentRepository.GetOrCreateSiteCategoriesRoots().SelectMany(root => GetChildren<T>(root, culture)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), culture);
         }
 
         public virtual IEnumerable<T> GetSiteCategories<T>(LoaderOptions loaderOptions) where T : CategoryData
         {
-            return ContentRepository.GetOrCreateSiteCategoriesRoots().SelectMany(root => GetChildren<T>(root, loaderOptions)).ToList();
+            return GetChildren<T>(ContentRepository.GetOrCreateSiteCategoriesRoot(), loaderOptions);
         }
 
         public virtual bool TryGet<T>(ContentReference categoryLink, out T category) where T : CategoryData
