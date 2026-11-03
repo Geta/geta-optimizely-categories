@@ -18,21 +18,44 @@ An alternative to Optimizely's default category functionality, where categories 
   
 ## How to get started?
 
-Install NuGet package from Episerver NuGet Feed:
+### Requirements
+
+- .NET 10
+- Optimizely CMS 13.1.0 or later. The package depends on CMS 13.1.0, so a site on 13.0.x (for example a new site from the `epi-alloy-mvc` template) has to update its CMS packages first, such as `EPiServer.CMS` and `EPiServer.Cms.UI.AspNetIdentity`. Otherwise NuGet reports a version conflict (NU1107).
+
+### Install the package
+
+Version 2.x (CMS 13) is published to GitHub Packages and attached to each [GitHub release](https://github.com/Geta/geta-optimizely-categories/releases). It isn't on nuget.org, which has the 1.x versions (CMS 12) only.
+
+To install from GitHub Packages, add the feed with a GitHub account and a personal access token that has the `read:packages` scope:
 
 ```
+dotnet nuget add source https://nuget.pkg.github.com/Geta/index.json --name geta-github --username <github-user> --password <token>
 dotnet add package Geta.Optimizely.Categories
 ```
 
-Register the module in Startup.cs using the following service extension
+Or download `Geta.Optimizely.Categories.<version>.nupkg` from the release, put it in a folder, and add that folder as a package source (for example in `nuget.config`):
+
+```
+dotnet nuget add source <folder> --name geta-categories-local
+dotnet add package Geta.Optimizely.Categories --version <version>
+```
+
+### Register the package
+
+Register the services in `Startup.ConfigureServices`:
 
 ```csharp
+using Geta.Optimizely.Categories.Configuration;
+
 services.AddGetaCategories();
 ```
 
-Then, call the following in the `Configure` method:
+Then, in the `Configure` method, before `app.UseEndpoints(...)`:
 
 ```csharp
+using Geta.Optimizely.Categories.Infrastructure.Initialization;
+
 app.UseGetaCategories();
 ```
 
@@ -69,7 +92,9 @@ Above property will look familiar if you have used standard Optimizely categorie
 
 ### Edit categories
 
-Instead of going to admin mode to manage categories, you now do it in edit mode, under the "Categories" tab in the main navigation component to the left. You work with them like normal pages, and it's possible to translate them. You can create categories that are shared between multiple sites or you can create site specific categories.
+Instead of going to admin mode to manage categories, you now do it in edit mode, in the "Categories" gadget in the navigation pane to the left. You work with them like normal pages, and it's possible to translate them. You can create categories that are shared between multiple sites or you can create site specific categories.
+
+On CMS 13 the gadget isn't in the navigation pane by default. Each editor adds it once: open the navigation pane, click the settings (cog) icon at the top, choose **Add Gadgets** and pick **Categories**. Categories can also be created from the category picker with **Create category**.
 
 ![extended category tree](/docs/extended-category-tree.jpg)
 
